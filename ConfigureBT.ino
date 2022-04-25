@@ -5,7 +5,8 @@
  *              Provides user menu for selecting configuration changes. Initial Serial1
  *              settings are 9600 8N1 (matches default HC-06 settings). Arduino device
  *              UART settings can be changed to match HC-06 through program. HC-06 must
- *              be in configuration mode (LED blinking to indicate Not Connected).
+ *              be in configuration mode (LED blinking to indicate Not Connected). 
+ *              NL+CR required by new firmware, but not older firmware. 
  *              
  *    HC06 connections:
  *      TXD <--> pin 3 (Serial 1 RX)
@@ -13,16 +14,19 @@
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 30-Jan, 2022
- *    Revision: 1.2
+ *    Modified: 7-Feb, 2022
+ *    Revision: 1.3
  */
  
-#define BAUD_LIST_CNT 9
+#define BAUD_LIST_CNT   9       // count of baud rate options
+#define ENDLINE_NLCR    "\n\r"  // newline terminator for version 3
 
+/* line ending to be applied to AT commands according to firmware version # */
+String lineEnding = ENDLINE_NLCR;
 char charFromBT;
-int baudRate = 4;
-int parity = 1;
-int selection;
+int baudRate = 4;   // initial baud rate setting (default 9600)
+int parity = 1;     // initial parity setting (default none)
+int selection;      // selection value from menu
 String nameBT, pin, command;
 
 unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
@@ -37,7 +41,7 @@ void setup() {
   //Serial1.println("Ready to receive characters over BT");
   Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
   Serial.println("Sending AT command to HC06. Should respond with OK if frame settings match . . .");
-  Serial1.print("AT");  // test connection
+  Serial1.print("AT" + lineEnding);  // test connection
   Serial1.flush();
   delay(1000); 
   while (Serial1.available() > 0) {
@@ -89,7 +93,7 @@ void loop() {
           Serial.print("Set local baud rate to ");
           Serial.println(baudRateList[baudRate]);
           Serial.println();
-          command = "AT";   // send echo to determine if current setting matches device
+          command = "AT" + lineEnding;   // send echo to determine if current setting matches device
           Serial1.print(command);
           Serial1.flush();
           delay(1000); 
@@ -136,7 +140,7 @@ void loop() {
               Serial.println("Invalid entry");
           }
           Serial.println();
-          command = "AT";   // send echo to determine if current setting matches device
+          command = "AT" + lineEnding;   // send echo to determine if current setting matches device
           Serial1.print(command);
           Serial1.flush();
           delay(1000); 
@@ -148,7 +152,7 @@ void loop() {
         }
         break;
       case 3: 
-        command = "AT+VERSION";
+        command = "AT+VERSION" + lineEnding;
         Serial1.print(command);
         Serial1.flush();
         delay(1000); 
@@ -177,7 +181,7 @@ void loop() {
         if (baudRate == 0) {
           Serial.println("Canceled");
         } else if(baudRate < BAUD_LIST_CNT) {
-          command = String("AT+BAUD") + baudRate;
+          command = String("AT+BAUD") + baudRate + lineEnding;
           Serial.print("Setting HC06 and local baud rate to ");
           Serial.println(baudRateList[baudRate]);
           Serial.println("sending command:" + command);
@@ -214,7 +218,7 @@ void loop() {
           nameBT = "HC06_" + nameBT.substring(0, 15);
           Serial.print("Setting name to ");
           Serial.println(nameBT);
-          command = String("AT+NAME") + nameBT;
+          command = String("AT+NAME") + nameBT + lineEnding;
           Serial.println("sending command:" + command);
           Serial1.print(command);
           Serial1.flush();
@@ -236,7 +240,7 @@ void loop() {
         if ((pin.length() == 4) && (pin.toInt() != 0)) {
           Serial.print("Setting pin to ");
           Serial.println(pin);
-          command = String("AT+PIN") + pin;
+          command = String("AT+PIN") + pin + lineEnding;
           Serial.println("sending command:" + command);
           Serial1.print(command);
           Serial1.flush();
@@ -272,7 +276,7 @@ void loop() {
         } else {
           switch(parity) {
             case 1:
-              command = "AT+PN";
+              command = "AT+PN" + lineEnding;
               Serial.println("Setting to No Parity check");
               Serial.println("sending command:" + command);
               Serial1.print(command);
@@ -281,7 +285,7 @@ void loop() {
               Serial1.begin(baudRateList[baudRate], parityList[parity]);
               break;
             case 2:
-              command = "AT+PE";
+              command = "AT+PE" + lineEnding;
               Serial.println("Setting to Even Parity check");
               Serial.println("sending command:" + command);
               Serial1.print(command);
@@ -290,7 +294,7 @@ void loop() {
               Serial1.begin(baudRateList[baudRate], parityList[parity]);
               break;
             case 3:
-              command = "AT+PO";
+              command = "AT+PO" + lineEnding;
               Serial.println("Setting to Odd Parity check");
               Serial.println("sending command:" + command);
               Serial1.print(command);
@@ -299,10 +303,10 @@ void loop() {
               Serial1.begin(baudRateList[baudRate], parityList[parity]);
               break;
             default:
-              command = "AT";     // to avoid error in sending command below
+              command = "AT" + lineEnding;     // to avoid error in sending command below
               Serial.println("Invalid entry");
           }
-          if (command.length() > 2) {
+          if ((command.length() - lineEnding.length()) > 2) {
             Serial.println("To complete change of parity, remove then reconnect power to HC-06.");
             Serial.println("Enter any character when complete (LED should be blinking).");
             while (Serial.available() < 1);
