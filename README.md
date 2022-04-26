@@ -16,11 +16,17 @@ Arduino program for simplifying AT command configuration of HC-06 devices over U
       RXD <--> pin 4 (Serial 1 TX)
       
   Created on: 18-Oct, 2021
-      Author: miller4@rose-hulman.edu
+  Author: miller4@rose-hulman.edu
+    
     Modified: 30-Jan, 2022
-    Revision: 1.2
+      Revision: 1.2
             * provides user menu for selecting desired configuration
     Modified: 7-Feb, 2022
-    Revision: 1.3
+      Revision: 1.3
             * updated end-line characters to support devices with newer
                 firmware (3.0+) HC-05 firmware?
+
+    Modified: 24-Apr, 2022
+      Revision: 1.4
+            * added option to auto-detect firmware version and UART 
+                configuration
