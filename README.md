@@ -11,9 +11,14 @@ Arduino program for simplifying AT command configuration of HC-06 devices over U
               UART settings can be changed to match HC-06 through program. HC-06 must be 
               in configuration mode (AT mode) (LED blinking to indicate Not Connected).
               
+              Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3).
+              There is no documentation of a Version 3 firmware for HC-06. AT commands differ
+              for HC-05 firmware. Support will be added for these devices in Revision 2 of
+              this software.
+              
     HC06 connections:
-      TXD <--> pin 3 (Serial 1 RX)
-      RXD <--> pin 4 (Serial 1 TX)
+      TXD <--> [Serial 1 RX] (pin 13 on MKR WiFi board) 
+      RXD <--> [Serial 1 TX] (pin 14 on MKR WiFi board)
       
   Created on: 18-Oct, 2021
   Author: miller4@rose-hulman.edu

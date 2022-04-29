@@ -7,19 +7,24 @@
  *              UART settings can be changed to match HC-06 through program. HC-06 must be 
  *              in configuration mode (AT mode) (LED blinking to indicate Not Connected).
  *              
+ *              Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3).
+ *              There is no documentation of a Version 3 firmware for HC-06. AT commands differ
+ *              for HC-05 firmware. Support will be added for these devices in Revision 2 of
+ *              this software.
+ *              
  *    HC06 connections:
- *      TXD <--> pin 3 (Serial 1 RX)
- *      RXD <--> pin 4 (Serial 1 TX)
+ *      TXD <--> [Serial 1 RX] (pin 13 on MKR WiFi board) 
+ *      RXD <--> [Serial 1 TX] (pin 14 on MKR WiFi board)
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 24-Apr, 2022
+ *    Modified: 29-Apr, 2022
  *    Revision: 1.4
  */
  
 #define BAUD_LIST_CNT   9       // count of baud rate options
 #define PARITY_LIST_CNT 4       // count of UART parity options
-#define ENDLINE_NLCR    "\n\r"    // for firmware version 3
+#define ENDLINE_NLCR    "\r\n"    // for firmware version 3
 #define ENDLINE_NONE    ""        // for firmware version 1/2
 #define STATUS_OK       "OK"
 
