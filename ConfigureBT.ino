@@ -1,7 +1,9 @@
 /*
  * HC-06 AT Command Center
  * 
- *              Provides user menu for selecting configuration changes. Attempsts to identify 
+ *  Description: Simple HC06 AT configuration program. Requires 2nd UART (Serial1) defined. 
+ * 
+ *              Provides user menu for selecting configuration changes. Attempts to identify 
  *              HC-06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
  *              version. NL+CR required by new firmware, but not older firmware. Arduino device
  *              UART settings can be changed to match HC-06 through program. HC-06 must be 
@@ -18,17 +20,27 @@
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 29-Apr, 2022
- *    Revision: 1.4
+ *    Modified: 26-Jan, 2023
+ *    Revision: 1.5
  */
  
-#define BAUD_LIST_CNT   9       // count of baud rate options
-#define PARITY_LIST_CNT 4       // count of UART parity options
+#define BAUD_LIST_CNT   9         // count of baud rate options
+#define PARITY_LIST_CNT 4         // count of UART parity options
+#define FIRM_VERSION1   0         // index for firmware 1.x models
+#define FIRM_VERSION3   1         // index for firmware 3.x models
+
+#define STOP1BIT        0
+#define STOP2BIT        1
+#define NOPARITY        0
+#define ODDPARITY       1
+#define EVENPARITY      2
+
 #define ENDLINE_NLCR    "\r\n"    // for firmware version 3
 #define ENDLINE_NONE    ""        // for firmware version 1/2
 #define STATUS_OK       "OK"
 
 /* line ending to be applied to AT commands according to firmware version # */
+int firmVersion = FIRM_VERSION1;
 String lineEnding = ENDLINE_NLCR;
 char charFromBT;
 int baudRate = 1;
@@ -49,7 +61,9 @@ void setup() {
   delay(100); 
   //Serial1.println("Ready to receive characters over BT");
   Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
-//  scanDevice();
+  delay(100);
+  Serial.flush();
+  scanDevice();
   printMenu();
 }
 
@@ -129,11 +143,13 @@ void printMenu() {
 
 void scanDevice() {
   lineEnding = ENDLINE_NLCR;
+  firmVersion = FIRM_VERSION1;
   baudRate = 1;
   parity = 1;
   found = false;
   hc06Version = "";
   
+  Serial1.end();
   Serial.print("Searching for firmware and version of HC06");
   while (!found) {
     command = "AT" + lineEnding;  // test connection
@@ -164,8 +180,9 @@ void scanDevice() {
       parity++;
     }
     if (found) break;
-    if (lineEnding.startsWith(ENDLINE_NLCR)) {
+    if (firmVersion < FIRM_VERSION3) {
       // search for configuration using alternate firmware version
+      firmVersion = FIRM_VERSION3;
       lineEnding = ENDLINE_NONE;
       baudRate = 1;
       parity = 1;
