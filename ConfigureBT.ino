@@ -20,7 +20,7 @@
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 31-Jan, 2023
+ *    Modified: 4-Feb, 2023
  *    Revision: 1.5
  */
  
@@ -53,7 +53,28 @@ String nameBT, pin, command;
 const unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
 const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8E1, SERIAL_8O1};
 const String parityType[] = {"Invalid", "None", "Even", "Odd"};
+const String parityParam[] = {"Invalid", ",0\r\n", ",2\r\n", ",1\r\n"};
 const String lineEnding[] = {"", "\r\n"};
+
+enum HC06commands {LINE_END = 0,
+                  ECHO,
+                  HCVERSION,
+                  BTNAME,
+                  BTPIN,
+                  HCBAUD,
+                  NO_PARITY,
+                  EVEN_PARITY,
+                  ODD_PARITY};
+                  
+const String atCommands[][2] = {{"", "\r\n"},
+                              {"AT", "AT\r\n"},
+                              {"AT+VERSION", "AT+VERSION?\r\n"},
+                              {"AT+NAME", "AT+NAME="},
+                              {"AT+PIN", "AT+PSWD="},
+                              {"AT+BAUD", "AT+UART="},
+                              {"AT+PN", "AT+UART="},
+                              {"AT+PE", "AT+UART="},
+                              {"AT+PO", "AT+UART="}};
 
 void setup() {
   Serial.begin(57600);
