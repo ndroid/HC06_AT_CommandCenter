@@ -14,13 +14,17 @@
  *              for HC-05 firmware. Support will be added for these devices in Revision 2 of
  *              this software.
  *              
+ *              AT response delays:
+ *                Around 20~25ms for Version 3.x  (newline terminated)
+ *                Around 550ms for Version 1.x    (timeout terminated)
+ *                
  *    HC06 connections:
  *      TXD <--> [Serial 1 RX] (pin 19 on Mega)(pin 13 on MKR WiFi board) 
  *      RXD <--> [Serial 1 TX] (pin 18 on Mega)(pin 14 on MKR WiFi board)
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 4-Feb, 2023
+ *    Modified: 22-Feb, 2023
  *    Revision: 1.5
  */
  
@@ -54,6 +58,7 @@ const unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 5
 const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8E1, SERIAL_8O1};
 const String parityType[] = {"Invalid", "None", "Even", "Odd"};
 const String parityParam[] = {"Invalid", ",0\r\n", ",2\r\n", ",1\r\n"};
+const String stopParam[] = {"", ",0", ",1"};
 const String lineEnding[] = {"", "\r\n"};
 
 enum HC06commands {LINE_END = 0,
@@ -78,10 +83,9 @@ const String atCommands[][2] = {{"", "\r\n"},
 
 void setup() {
   Serial.begin(57600);
-  delay(4000); // allow device to pair after reset or power up 
+  delay(1000);
   Serial1.begin(baudRateList[baudRate], parityList[parity]);
   delay(100); 
-  //Serial1.println("Ready to receive characters over BT");
   Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
   delay(100);
   Serial.flush();
@@ -166,7 +170,6 @@ void printMenu() {
 void scanDevice() {
   String comBuffer;
 //  lineEnding = ENDLINE_NLCR;
-  firmVersion = FIRM_VERSION1;
   baudRate = 1;
   parity = 1;
   found = false;
@@ -175,17 +178,25 @@ void scanDevice() {
   Serial1.end();
   Serial.print("Searching for firmware and version of HC06");
   while (!found) {
-    command = "AT" + lineEnding[firmVersion];  // test connection
+    // TODO  change both inner loops to for loops - found loop needed?
     while (parity < PARITY_LIST_CNT) {
       while (baudRate < BAUD_LIST_CNT) {
+        // Test for Version 1.x firmware AT echo
+        firmVersion = FIRM_VERSION1;
+        command = atCommands[ECHO][firmVersion];  // test connection
+#ifdef DEBUG
+        // debugging instructions to verify characters sent to UART
+        Serial.print("Command length: ");
+        Serial.println(command.length());
+        for (int i = 0; i < command.length(); i++) {
+          Serial.print(command.charAt(i), HEX);
+          Serial.print("\t");
+        }
+        Serial.println();
+#endif
         Serial.print(" .");
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
         delay(100); 
-        if (firmVersion) {
-          Serial1.print(lineEnding[firmVersion]);
-          Serial1.flush();
-          delay(500); 
-        }
         while (Serial1.available() > 0) {
           // wait until input stream is clear
           Serial1.read();
@@ -195,6 +206,16 @@ void scanDevice() {
         delay(1000); 
         if (Serial1.available() > 0) {
           comBuffer = Serial1.readString();
+          Serial.println();
+          Serial.println(comBuffer);
+#ifdef DEBUG
+          // debugging instructions to verify characters received over UART
+          for (int i = 0; i < comBuffer.length(); i++) {
+            Serial.print(comBuffer.charAt(i), HEX);
+            Serial.print("\t");
+          }
+          Serial.println();
+#endif
           if (comBuffer.startsWith(STATUS_OK)) {
             found = true;
             break;
@@ -204,6 +225,55 @@ void scanDevice() {
           // wait until input stream is clear
           Serial1.read();
         }
+        // end Test for Version 1.x firmware
+        
+        // Test for Version 3.x firmware AT echo
+        firmVersion = FIRM_VERSION3;
+        command = atCommands[ECHO][firmVersion];  // test connection
+#ifdef (DEBUG)
+        // debugging instructions to verify characters sent to UART
+        Serial.print("Command length: ");
+        Serial.println(command.length());
+        for (int i = 0; i < command.length(); i++) {
+          Serial.print(command.charAt(i), HEX);
+          Serial.print("\t");
+        }
+        Serial.println();
+#endif
+        // ensure HC06 is not waiting for termination of partially complete command
+        delay(100); 
+        Serial1.print(lineEnding[FIRM_VERSION3]);
+        Serial1.flush();
+        delay(500); 
+        while (Serial1.available() > 0) {
+          // wait until input stream is clear
+          Serial1.read();
+        }
+        Serial1.print(command);
+        Serial1.flush();
+        delay(1000); 
+        if (Serial1.available() > 0) {
+          comBuffer = Serial1.readString();
+          Serial.println();
+          Serial.println(comBuffer);
+#ifdef DEBUG
+          // debugging instructions to verify characters received over UART
+          for (int i = 0; i < comBuffer.length(); i++) {
+            Serial.print(comBuffer.charAt(i), HEX);
+            Serial.print("\t");
+          }
+          Serial.println();
+#endif
+          if (comBuffer.startsWith(STATUS_OK)) {
+            found = true;
+            break;
+          }
+        }
+        while (Serial1.available() > 0) {
+          // wait until input stream is clear
+          Serial1.read();
+        }
+        // end Test for Version 3.x firmware
         Serial1.end();
         baudRate++;
         delay(150); 
@@ -213,22 +283,11 @@ void scanDevice() {
       parity++;
     }
     if (found) break;
-    if (firmVersion < FIRM_VERSION3) {
-      // search for configuration using alternate firmware version
-      Serial.print("\nSearching for configuration using alternate firmware version");
-      firmVersion = FIRM_VERSION3;
-//      lineEnding = ENDLINE_NONE;
-      baudRate = 1;
-      parity = 1;
-    }
-    else {
-      break;
-    }
   }
   Serial.println();
 
   if (found) {
-    command = "AT+VERSION" + lineEnding[firmVersion];
+    command = atCommands[HCVERSION][firmVersion];  // test connection
     Serial1.print(command);
     Serial1.flush();
     delay(1000); 
