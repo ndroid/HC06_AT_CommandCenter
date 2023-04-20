@@ -15,8 +15,9 @@
  *              this software.
  *              
  *              AT response delays:
- *                Around 20~25ms for Version 3.x  (newline terminated)
- *                Around 550ms for Version 1.x    (timeout terminated)
+ *                Around 10~25ms for Version 3.x  (newline terminated) - max observed 35ms
+ *                Around 500ms for Version 1.x    (timeout terminated) - max observed 525ms
+ *                Serial writes are asynchronous, so delays must also consider write time
  *                
  *    HC06 connections:
  *      TXD <--> [Serial 1 RX] (pin 19 on Mega)(pin 13 on MKR WiFi board) 
@@ -24,13 +25,13 @@
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 22-Feb, 2023
+ *    Modified: 18-Apr, 2023
  *    Revision: 1.5
  */
  
 #define BAUD_LIST_CNT   9         // count of baud rate options
 #define PARITY_LIST_CNT 4         // count of UART parity options
-#define FIRM_VERSION1   0         // index for firmware 1.x models
+#define FIRM_VERSION1   0         // index for firmware 1.x/2.x models
 #define FIRM_VERSION3   1         // index for firmware 3.x models
 
 #define STOP1BIT        0
@@ -56,8 +57,8 @@ String nameBT, pin, command;
 
 const unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
 const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8E1, SERIAL_8O1};
-const String parityType[] = {"Invalid", "None", "Even", "Odd"};
-const String parityParam[] = {"Invalid", ",0\r\n", ",2\r\n", ",1\r\n"};
+const String parityType[] = {"Invalid", "None", "Odd", "Even"};
+const String parityParam[] = {"Invalid", ",0\r\n", ",1\r\n", ",2\r\n"};
 const String stopParam[] = {"", ",0", ",1"};
 const String lineEnding[] = {"", "\r\n"};
 
@@ -343,8 +344,8 @@ void setLocalParity() {
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
-  Serial.println("\t(2).......Even parity");
-  Serial.println("\t(3).......Odd parity");
+  Serial.println("\t(2).......Odd parity");
+  Serial.println("\t(3).......Even parity");
 
   while (Serial.available() < 1);
   parity = Serial.parseInt();
@@ -360,12 +361,12 @@ void setLocalParity() {
       case 2:
         Serial1.end();
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        Serial.println("Setting to Even Parity check");
+        Serial.println("Setting to Odd Parity check");
         break;
       case 3:
         Serial1.end();
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        Serial.println("Setting to Odd Parity check");
+        Serial.println("Setting to Even Parity check");
         break;
       default:
         Serial.println("Invalid entry");
@@ -507,8 +508,8 @@ void setParity() {
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
-  Serial.println("\t(2).......Even parity");
-  Serial.println("\t(3).......Odd parity");
+  Serial.println("\t(2).......Odd parity");
+  Serial.println("\t(3).......Even parity");
 
   while (Serial.available() < 1);
   parity = Serial.parseInt();
@@ -526,8 +527,8 @@ void setParity() {
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
         break;
       case 2:
-        command = "AT+PE" + lineEnding[firmVersion];
-        Serial.println("Setting to Even Parity check");
+        command = "AT+PO" + lineEnding[firmVersion];
+        Serial.println("Setting to Odd Parity check");
         Serial.println("sending command:" + command);
         Serial1.print(command);
         Serial1.flush();
@@ -535,8 +536,8 @@ void setParity() {
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
         break;
       case 3:
-        command = "AT+PO" + lineEnding[firmVersion];
-        Serial.println("Setting to Odd Parity check");
+        command = "AT+PE" + lineEnding[firmVersion];
+        Serial.println("Setting to Even Parity check");
         Serial.println("sending command:" + command);
         Serial1.print(command);
         Serial1.flush();
