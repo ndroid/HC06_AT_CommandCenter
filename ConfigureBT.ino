@@ -48,6 +48,7 @@
 #define ENDLINE_NONE    ""        // for firmware version 1/2
 #define STATUS_OK       "OK"
 
+#define CONFIG_DELAY    20        // delay for basic configuration changes
 #define FW1_RESPONSE    550       // for firmware version 1/2
 #define FW3_RESPONSE    40        // for firmware version 3
 #define BITS_PER_CHAR   12        // UART frames - worst case: parity, 2 stop bits
@@ -96,7 +97,7 @@ void setup() {
   Serial.begin(57600);
   delay(1000);
   Serial1.begin(baudRateList[baudRate], parityList[parity]);
-  delay(100); 
+  delay(CONFIG_DELAY); 
 //  Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
 //  delay(100);
   Serial.flush();
@@ -150,6 +151,12 @@ void loop() {
   delay(100);
 }
 
+void responseDelay(unsigned long characters, int firmware) {
+  if (baudRate == 0) return;
+  unsigned long writeMS = (characters * BITS_PER_CHAR * 1000) / baudRateList[baudRate];
+  delay(writeMS + responseMS[firmware]);
+}
+
 void printMenu() {
   while (firmVersion == FIRM_UNKNOWN) {
     if (scanDevice()) break;
@@ -179,58 +186,69 @@ void printMenu() {
   
 }
 
-void scanDevice() {
+bool scanDevice() {
   String comBuffer;
 //  lineEnding = ENDLINE_NLCR;
-  baudRate = VERS3_MIN_BAUD;
-  parity = 1;
+//  baudRate = VERS3_MIN_BAUD;
+//  parity = 1;
   firmVersion = FIRM_UNKNOWN;
 //  found = false;
   hc06Version = "";
   
   Serial1.end();
+  delay(CONFIG_DELAY);
   Serial.print("Searching for firmware and version of HC06");
-  while (firmVersion == FIRM_UNKNOWN) {
-    // TODO  change both inner loops to for loops - found loop needed?
-    while (parity < PARITY_LIST_CNT) {
-      while (baudRate < BAUD_LIST_CNT) {
-        // Test for Version 1.x firmware AT echo
-        firmVersion = FIRM_VERSION1;
-        command = atCommands[ECHO][firmVersion];  // test connection
+  // TODO  change both inner loops to for loops - found loop needed?
+  for (int firmware = FIRM_VERSION3; firmware > FIRM_UNKNOWN; firmware--) {
+    for (parity = 1; parity < PARITY_LIST_CNT; parity++) {
+      // firmware version 3.x does not support baud rate below 4800
+      if (firmware == FIRM_VERSION3) {
+        baudRate = VERS3_MIN_BAUD;
+      } else {
+        baudRate = 1;
+      }
+      for ( ; baudRate < BAUD_LIST_CNT; baudRate++) {
+        // Test for Version x.x firmware AT echo
+        command = atCommands[ECHO][firmware]; // test connection
 #ifdef DEBUG
         // debugging instructions to verify characters sent to UART
         Serial.print("Command length: ");
         Serial.println(command.length());
         for (int i = 0; i < command.length(); i++) {
-          Serial.print(command.charAt(i), HEX);
           Serial.print("\t");
+          Serial.print(command.charAt(i), HEX);
         }
         Serial.println();
 #endif
         Serial.print(" .");
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        delay(100); 
+        delay(CONFIG_DELAY);
+        if (firmware == FIRM_VERSION3) {
+          // ensure HC06 is not waiting for termination of partially complete command
+          Serial1.print(lineEnding[FIRM_VERSION3]);
+          Serial1.flush();
+          delay(FW3_RESPONSE);
+        }
         while (Serial1.available() > 0) {
           // wait until input stream is clear
           Serial1.read();
         }
         Serial1.print(command);
         Serial1.flush();
-        delay(1000); 
+        responseDelay(command.length(), firmware);
         if (Serial1.available() > 0) {
           comBuffer = Serial1.readString();
+#ifdef DEBUG
           Serial.println();
           Serial.println(comBuffer);
-#ifdef DEBUG
-          // debugging instructions to verify characters received over UART
           for (int i = 0; i < comBuffer.length(); i++) {
-            Serial.print(comBuffer.charAt(i), HEX);
             Serial.print("\t");
+            Serial.print(comBuffer.charAt(i), HEX);
           }
           Serial.println();
 #endif
           if (comBuffer.startsWith(STATUS_OK)) {
-            found = true;
+            firmVersion = firmware;
             break;
           }
         }
@@ -238,77 +256,27 @@ void scanDevice() {
           // wait until input stream is clear
           Serial1.read();
         }
-        // end Test for Version 1.x firmware
-        
-        // Test for Version 3.x firmware AT echo
-        firmVersion = FIRM_VERSION3;
-        command = atCommands[ECHO][firmVersion];  // test connection
-#ifdef (DEBUG)
-        // debugging instructions to verify characters sent to UART
-        Serial.print("Command length: ");
-        Serial.println(command.length());
-        for (int i = 0; i < command.length(); i++) {
-          Serial.print(command.charAt(i), HEX);
-          Serial.print("\t");
-        }
-        Serial.println();
-#endif
-        // ensure HC06 is not waiting for termination of partially complete command
-        delay(100); 
-        Serial1.print(lineEnding[FIRM_VERSION3]);
-        Serial1.flush();
-        delay(500); 
-        while (Serial1.available() > 0) {
-          // wait until input stream is clear
-          Serial1.read();
-        }
-        Serial1.print(command);
-        Serial1.flush();
-        delay(1000); 
-        if (Serial1.available() > 0) {
-          comBuffer = Serial1.readString();
-          Serial.println();
-          Serial.println(comBuffer);
-#ifdef DEBUG
-          // debugging instructions to verify characters received over UART
-          for (int i = 0; i < comBuffer.length(); i++) {
-            Serial.print(comBuffer.charAt(i), HEX);
-            Serial.print("\t");
-          }
-          Serial.println();
-#endif
-          if (comBuffer.startsWith(STATUS_OK)) {
-            found = true;
-            break;
-          }
-        }
-        while (Serial1.available() > 0) {
-          // wait until input stream is clear
-          Serial1.read();
-        }
-        // end Test for Version 3.x firmware
+        // end Test for Version x.x firmware
         Serial1.end();
-        baudRate++;
-        delay(150); 
-      }
-      if (found) break;
-      baudRate = 1;
-      parity++;
-    }
-    if (found) break;
-  }
+        delay(CONFIG_DELAY);
+      } // end baud rate loop
+      if (firmVersion != FIRM_UNKNOWN)  break;
+    } // end parity loop
+    if (firmVersion != FIRM_UNKNOWN)  break;
+  } // end firmware loop
   Serial.println();
 
-  if (found) {
+  if (firmVersion != FIRM_UNKNOWN) {
     command = atCommands[HCVERSION][firmVersion];  // test connection
     Serial1.print(command);
     Serial1.flush();
-    delay(1000); 
+    responseDelay(command.length(), firmVersion);
     if (Serial1.available() > 0) {
       hc06Version = Serial1.readString();
     }
   }
   
+  return (firmVersion != FIRM_UNKNOWN);
 }
 
 void setLocalBaud() {
