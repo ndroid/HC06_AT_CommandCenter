@@ -1,10 +1,10 @@
 /*
- * HC-06 AT Command Center
+ * HC-05/06 AT Command Center
  * 
- *  Description: Simple HC06 AT configuration program. Requires 2nd UART (Serial1) defined. 
+ *  Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined. 
  * 
  *              Provides user menu for selecting configuration changes. Attempts to identify 
- *              HC-06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
+ *              HC-05/06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
  *              version. NL+CR required by new firmware, but not older firmware. Arduino device
  *              UART settings can be changed to match HC-06 through program. HC-06 must be 
  *              in configuration mode (AT mode) (LED blinking to indicate Not Connected).
@@ -25,14 +25,18 @@
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 18-Apr, 2023
+ *    Modified: 20-Apr, 2023
  *    Revision: 1.5
  */
- 
+// uncomment following line to include debugging output to serial
+#define DEBUG           1
+
 #define BAUD_LIST_CNT   9         // count of baud rate options
+#define VERS3_MIN_BAUD  3         // index for firmware 3.x minimum baud rate (4800)
 #define PARITY_LIST_CNT 4         // count of UART parity options
-#define FIRM_VERSION1   0         // index for firmware 1.x/2.x models
-#define FIRM_VERSION3   1         // index for firmware 3.x models
+#define FIRM_UNKNOWN    0         // index for unknown firmware 
+#define FIRM_VERSION1   1         // index for firmware 1.x/2.x models
+#define FIRM_VERSION3   2         // index for firmware 3.x models
 
 #define STOP1BIT        0
 #define STOP2BIT        1
@@ -44,24 +48,30 @@
 #define ENDLINE_NONE    ""        // for firmware version 1/2
 #define STATUS_OK       "OK"
 
+#define FW1_RESPONSE    550       // for firmware version 1/2
+#define FW3_RESPONSE    40        // for firmware version 3
+#define BITS_PER_CHAR   12        // UART frames - worst case: parity, 2 stop bits
+
 /* line ending to be applied to AT commands according to firmware version # */
-int firmVersion = FIRM_VERSION1;
+int firmVersion = FIRM_UNKNOWN;
+#define VERSION_KNOWN   (firmVersion != FIRM_UNKNOWN)
+
 //String lineEnding = ENDLINE_NLCR;
 char charFromBT;
-int baudRate = 1;
+int baudRate = VERS3_MIN_BAUD;
 int parity = 1;
 int selection;
-bool found = false;
+//bool found = false;
 String hc06Version = "";
 String nameBT, pin, command;
 
 const unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
-const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8E1, SERIAL_8O1};
+const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8O1, SERIAL_8E1};
 const String parityType[] = {"Invalid", "None", "Odd", "Even"};
 const String parityParam[] = {"Invalid", ",0\r\n", ",1\r\n", ",2\r\n"};
 const String stopParam[] = {"", ",0", ",1"};
-const String lineEnding[] = {"", "\r\n"};
-
+const String lineEnding[] = {"", "", "\r\n"};
+const unsigned long responseMS[] = {1, FW1_RESPONSE, FW3_RESPONSE}
 enum HC06commands {LINE_END = 0,
                   ECHO,
                   HCVERSION,
@@ -87,10 +97,9 @@ void setup() {
   delay(1000);
   Serial1.begin(baudRateList[baudRate], parityList[parity]);
   delay(100); 
-  Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
-  delay(100);
+//  Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
+//  delay(100);
   Serial.flush();
-  scanDevice();
   printMenu();
 }
 
@@ -102,8 +111,9 @@ void loop() {
   }
 
   if (Serial.available() > 0) {
-    selection = Serial.parseInt();
-    switch(selection) {
+    command = Serial.readString();
+//    selection = command.toInt();
+    switch(command.toInt()) {
       case 1:
         setBaudRate();
         break;
@@ -141,20 +151,21 @@ void loop() {
 }
 
 void printMenu() {
+  while (firmVersion == FIRM_UNKNOWN) {
+    if (scanDevice()) break;
+    Serial.println();
+    Serial.println("Device version/configuration unknown.");
+    Serial.println("Check connections and hit any key to scan again.");
+  }
   Serial.println();
   Serial.println();
   Serial.write(12);   // Form feed (not supported in Serial Monitor)
-  if (found) {
-    Serial.print("Device found - Version: ");
-    Serial.println(hc06Version);
-    Serial.print("Current baud rate: ");
-    Serial.println(baudRateList[baudRate]);
-    Serial.print("Current parity: ");
-    Serial.println(parityType[parity]);
-  } else {
-    Serial.println("Device version/configuration unknown.");
-    Serial.println("Check connections and select option 8 to scan for device.");
-  }
+  Serial.print("Device found - Version: ");
+  Serial.println(hc06Version);
+  Serial.print("Current baud rate: ");
+  Serial.println(baudRateList[baudRate]);
+  Serial.print("Current parity: ");
+  Serial.println(parityType[parity]);
   Serial.println();
   Serial.println("Select option:");
   Serial.println("\t(1) Set HC06 Baud Rate");
@@ -171,14 +182,15 @@ void printMenu() {
 void scanDevice() {
   String comBuffer;
 //  lineEnding = ENDLINE_NLCR;
-  baudRate = 1;
+  baudRate = VERS3_MIN_BAUD;
   parity = 1;
-  found = false;
+  firmVersion = FIRM_UNKNOWN;
+//  found = false;
   hc06Version = "";
   
   Serial1.end();
   Serial.print("Searching for firmware and version of HC06");
-  while (!found) {
+  while (firmVersion == FIRM_UNKNOWN) {
     // TODO  change both inner loops to for loops - found loop needed?
     while (parity < PARITY_LIST_CNT) {
       while (baudRate < BAUD_LIST_CNT) {
