@@ -76,7 +76,7 @@ const String parityCmd[] = {"Invalid", "AT+PN", "AT+PO", "AT+PE"};
 const String parityParam[] = {"Invalid", ",0\r\n", ",1\r\n", ",2\r\n"};
 const String stopParam[] = {"", ",0", ",1"};
 const String lineEnding[] = {"", "", "\r\n"};
-const unsigned long responseMS[] = {1, FW1_RESPONSE, FW3_RESPONSE}
+const unsigned long responseMS[] = {1, FW1_RESPONSE, FW3_RESPONSE};
 enum HC06commands {LINE_END = 0,
                   ECHO,
                   HCVERSION,
@@ -173,7 +173,7 @@ void responseDelay(unsigned long characters, int firmware, HC06commands command)
   delay(writeMS + responseMS[firmware]);
 }
 
-void clearInputStream() {
+void clearInputStream(int firmware) {
   if (firmware == FIRM_VERSION3) {
     // ensure HC06 is not waiting for termination of partially complete command
     Serial1.print(lineEnding[FIRM_VERSION3]);
@@ -241,9 +241,9 @@ bool scanDevice() {
         command = atCommands[ECHO][firmware - 1]; // test connection
 #ifdef DEBUG
         // debugging instructions to verify characters sent to UART
-        Serial.print("Command length: ");
+        Serial.print("\nCommand length: ");
         Serial.println(command.length());
-        for (int i = 0; i < command.length(); i++) {
+        for (unsigned int i = 0; i < command.length(); i++) {
           Serial.print("\t");
           Serial.print(command.charAt(i), HEX);
         }
@@ -252,7 +252,7 @@ bool scanDevice() {
         Serial.print(" .");
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
         delay(CONFIG_DELAY);
-        clearInputStream();
+        clearInputStream(firmware);
         Serial1.print(command);
         Serial1.flush();
         responseDelay(command.length(), firmware, ECHO);
@@ -261,7 +261,7 @@ bool scanDevice() {
 #ifdef DEBUG
           Serial.println();
           Serial.println(comBuffer);
-          for (int i = 0; i < comBuffer.length(); i++) {
+          for (unsigned int i = 0; i < comBuffer.length(); i++) {
             Serial.print("\t");
             Serial.print(comBuffer.charAt(i), HEX);
           }
@@ -389,7 +389,7 @@ void setLocalParity() {
 
 void getVersion() {
   command = atCommands[HCVERSION][firmVersion - 1];
-  clearInputStream();
+  clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
   responseDelay(command.length(), firmVersion, HCVERSION);
@@ -438,7 +438,7 @@ void setBaudRate() {
     Serial.println(baudRateList[tempBaud]);
     Serial.println("\tsending command: " + command);
     Serial.println();
-    clearInputStream();
+    clearInputStream(firmVersion);
     Serial1.print(command);
     Serial1.flush();
     responseDelay(command.length(), firmVersion, BAUD_SET);
@@ -448,7 +448,7 @@ void setBaudRate() {
       Serial.println(comBuffer);
       Serial.println();
 #ifdef DEBUG
-      for (int i = 0; i < comBuffer.length(); i++) {
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
         Serial.print("\t");
         Serial.print(comBuffer.charAt(i), HEX);
       }
@@ -485,7 +485,7 @@ void setName() {
     Serial.println(nameBT);
     command = atCommands[BTNAME][firmVersion - 1] + nameBT + lineEnding[firmVersion];
     Serial.println("\tsending command: " + command);
-    clearInputStream();
+    clearInputStream(firmVersion);
     Serial1.print(command);
     Serial1.flush();
     responseDelay(command.length(), firmVersion, BTNAME);
@@ -495,7 +495,7 @@ void setName() {
       Serial.println(comBuffer);
       Serial.println();
 #ifdef DEBUG
-      for (int i = 0; i < comBuffer.length(); i++) {
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
         Serial.print("\t");
         Serial.print(comBuffer.charAt(i), HEX);
       }
@@ -528,7 +528,7 @@ void setPin() {
     //  https://forum.arduino.cc/t/password-hc-05/481294
     pin = String("\"") + pin.substring(0, 14) + String("\"");
   } else if (pin.length() == 4) {
-    for (int i = 0; i < 4; i++) {
+    for (unsigned int i = 0; i < 4; i++) {
       if (!isDigit(pin.charAt(i))) {
         Serial.println("Invalid entry (not 4-digit integer)");
 #ifdef DEBUG
@@ -546,7 +546,7 @@ void setPin() {
     Serial.println("Invalid entry (not 4-digit integer)");
 #ifdef DEBUG
     Serial.print("\tCharacters: ");
-    for (int i = 0; i < pin.length(); i++) {
+    for (unsigned int i = 0; i < pin.length(); i++) {
       Serial.print(pin[i], HEX);
       Serial.print(" ");
     }
@@ -559,7 +559,7 @@ void setPin() {
   Serial.println(pin);
   command = atCommands[BTPIN][firmVersion - 1] + pin + lineEnding[firmVersion];
   Serial.println("\tsending command: " + command);
-  clearInputStream();
+  clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
   responseDelay(command.length(), firmVersion, BTPIN);
@@ -596,7 +596,7 @@ void setParity() {
     }
     Serial.println("Setting to " + parityType[tempParity] + " Parity check");
     Serial.println("\tsending command: " + command);
-    clearInputStream();
+    clearInputStream(firmVersion);
     Serial1.print(command);
     Serial1.flush();
     responseDelay(command.length(), firmVersion, PARITY_SET);
@@ -607,7 +607,7 @@ void setParity() {
       Serial.println(comBuffer);
       Serial.println();
 #ifdef DEBUG
-      for (int i = 0; i < comBuffer.length(); i++) {
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
         Serial.print("\t");
         Serial.print(comBuffer.charAt(i), HEX);
       }
