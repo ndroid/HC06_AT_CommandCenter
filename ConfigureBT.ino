@@ -515,39 +515,57 @@ void setName() {
 void setPin() {
   String comBuffer = "";
   if (firmVersion == FIRM_VERSION3) {
-    Serial.println("Enter new BT passkey (16 characters max): ");
+    Serial.println("Enter new BT passkey (14 characters max): ");
   } else {
     Serial.println("Enter new pin number (4 digits): ");
   }
 
   while (Serial.available() < 1);
-  command = Serial.readString();
-  command.trim();
-  int tempBaud = command.toInt();
   pin = Serial.readString();
-  if ((pin.length() == 4) && (pin.toInt() != 0)) {
-    Serial.print("Setting pin to ");
-    Serial.println(pin);
-    command = String("AT+PIN") + pin + lineEnding[firmVersion];
-    Serial.println("\tsending command: " + command);
-    Serial1.print(command);
-    Serial1.flush();
-    delay(1000); 
-    while (Serial1.available() > 0) {
-      Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
-      Serial.println();
+  pin.trim();
+  if (firmVersion == FIRM_VERSION3) {
+    pin = "\"" + pin.substring(0, 14) + "\"";
+  } else if (pin.length() == 4) {
+    for (int i = 0; i < 4; i++) {
+      if (!isDigit(pin.charAt(i))) {
+        Serial.println("Invalid entry (not 4-digit integer)");
+#ifdef DEBUG
+        Serial.print("\tCharacters: ");
+        for (i = 0; i < pin.length(); i++) {
+          Serial.print(pin[i], HEX);
+          Serial.print(" ");
+        }
+        Serial.println();
+#endif
+        return;
+      }
     }
   } else {
     Serial.println("Invalid entry (not 4-digit integer)");
-    Serial.print("Characters: ");
+#ifdef DEBUG
+    Serial.print("\tCharacters: ");
     for (int i = 0; i < pin.length(); i++) {
       Serial.print(pin[i], HEX);
       Serial.print(" ");
     }
     Serial.println();
+#endif
+    return;
   }
-  
+
+  Serial.print("Setting pin to ");
+  Serial.println(pin);
+  command = atCommands[BTPIN][firmVersion - 1] + pin + lineEnding[firmVersion];
+  Serial.println("\tsending command: " + command);
+  clearInputStream();
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, BTPIN);
+  while (Serial1.available() > 0) {
+    Serial.print("[HC06]: ");
+    Serial.println(Serial1.readString());
+    Serial.println();
+  }
 }
 
 void setParity() {
