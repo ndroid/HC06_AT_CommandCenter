@@ -124,7 +124,7 @@ void clearInputStream(int firmware) {
 }
 
 void printMenu() {
-  while (firmVersion == FIRM_UNKNOWN) {
+  while (VERSION_UNKNOWN) {
     if (scanDevice()) break;
     Serial.println();
     Serial.println("Device version/configuration unknown.");
@@ -159,7 +159,7 @@ bool scanDevice() {
   
   Serial1.end();
   delay(CONFIG_DELAY);
-  Serial.print("Searching for firmware and version of HC06");
+  Serial.print("\nSearching for firmware and version of HC06");
   // Scan through possible UART configurations for each firmware version. 
   //  Use AT command to test for OK response.
   for (int firmware = FIRM_VERSION3; firmware > FIRM_UNKNOWN; firmware--) {
@@ -172,7 +172,7 @@ bool scanDevice() {
       }
       for ( ; baudRate < BAUD_LIST_CNT; baudRate++) {
         // Test for Version x.x firmware AT echo
-        command = atCommands[ECHO][firmware - 1]; // test connection
+        command = atCommands[ECHO][firmware]; // test connection
 #ifdef DEBUG
         // debugging instructions to verify characters sent to UART
         Serial.print("\nCommand length: ");
@@ -214,13 +214,13 @@ bool scanDevice() {
         Serial1.end();
         delay(CONFIG_DELAY);
       } // end baud rate loop
-      if (firmVersion != FIRM_UNKNOWN)  break;
+      if (VERSION_KNOWN)  break;
     } // end parity loop
-    if (firmVersion != FIRM_UNKNOWN)  break;
+    if (VERSION_KNOWN)  break;
   } // end firmware loop
   Serial.println();
 
-  if (firmVersion != FIRM_UNKNOWN) {
+  if (VERSION_KNOWN) {
     command = atCommands[HCVERSION][firmVersion];  // test connection
     Serial1.print(command);
     Serial1.flush();
@@ -230,7 +230,7 @@ bool scanDevice() {
     }
   }
   
-  return (firmVersion != FIRM_UNKNOWN);
+  return (VERSION_KNOWN);
 }
 
 void setLocalBaud() {
@@ -326,6 +326,10 @@ void getVersion() {
     Serial.println("OK response not received.");
     firmVersion = FIRM_UNKNOWN;
   }
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 String constructUARTstring(int baud, int prty, int stops) {
@@ -439,6 +443,10 @@ void setName() {
     Serial.println("Invalid entry (empty string)");
   }
   
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 void setPin() {
@@ -498,6 +506,10 @@ void setPin() {
     Serial.println(Serial1.readString());
     Serial.println();
   }
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 void setParity() {
