@@ -149,7 +149,7 @@ void printMenu() {
   Serial.println("\t(6) Set local parity (for testing only)");
   Serial.println("\t(7) Get version (useful to verify connection/baud)");
   Serial.println("\t(8) Rescan HC06 device");
-  
+  Serial.println();
 }
 
 bool scanDevice() {
@@ -233,86 +233,17 @@ bool scanDevice() {
   return (VERSION_KNOWN);
 }
 
-void setLocalBaud() {
+void testEcho() {
   String comBuffer = "";
-  Serial.println("It is advised that baud rate is left at same setting as found hardware.");
-  Serial.print("Current baud rate: ");
-  Serial.println(baudRateList[baudRate]);
-  Serial.println("Select desired baud rate:");
-  Serial.println("\t(0) Cancel");
-  Serial.println("\t(1)---------1200");
-  Serial.println("\t(2)---------2400");
-  Serial.println("\t(3)---------4800");
-  Serial.println("\t(4)---------9600 (Default)");
-  Serial.println("\t(5)---------19200");
-  Serial.println("\t(6)---------38400");
-  Serial.println("\t(7)---------57600");
-  Serial.println("\t(8)---------115200");
-
-  while (Serial.available() < 1);
-  command = Serial.readString();
-  int tempBaud = command.toInt() - 1;
-  if (tempBaud < 0) {
-    Serial.println("Canceled");
-  } else if (tempBaud < BAUD_LIST_CNT) {
-    Serial1.end();
-    delay(CONFIG_DELAY);
-    baudRate = tempBaud;
-    Serial1.begin(baudRateList[baudRate], parityList[parity]);
-    delay(CONFIG_DELAY);
-    Serial.print("Set local baud rate to ");
-    Serial.println(baudRateList[baudRate]);
-    Serial.println("Testing new parity configuration - request firmware version . . .");
-    getVersion();
-  } else {
-    Serial.println("Invalid entry");
-  }
-  
-}
-
-void setLocalParity() {
-  String comBuffer = "";
-  Serial.println("It is advised that parity is left at same setting as found hardware.");
-  Serial.print("Current parity: ");
-  Serial.println(parityType[parity]);
-  Serial.println("Select parity option:");
-  Serial.println("\t(0) Cancel");
-  Serial.println("\t(1).......No parity");
-  Serial.println("\t(2).......Odd parity");
-  Serial.println("\t(3).......Even parity");
-
-  while (Serial.available() < 1);
-  command = Serial.readString();
-  int tempParity = command.toInt() - 1;
-  if (tempParity < 0) {
-    Serial.println("Canceled");
-  } else if (tempParity < PARITY_LIST_CNT) {
-    Serial1.end();
-    delay(CONFIG_DELAY);
-    parity = tempParity;
-    Serial.println("Setting to " + parityType[parity] + " Parity check");
-    Serial1.begin(baudRateList[baudRate], parityList[parity]);
-    delay(CONFIG_DELAY);
-    Serial.println("Testing new parity configuration - request firmware version . . .");
-    getVersion();
-  } else {
-    Serial.println("Invalid entry");
-  }
-  
-}
-
-void getVersion() {
-  String comBuffer = "";
-  command = atCommands[HCVERSION][firmVersion];
+  command = atCommands[ECHO][firmVersion];
   clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
-  responseDelay(command.length(), firmVersion, HCVERSION);
+  responseDelay(command.length(), firmVersion, ECHO);
   if (Serial1.available() > 0) {
     comBuffer = Serial1.readString();
     Serial.print("[HC06]: ");
     Serial.println(comBuffer);
-    Serial.println();
 #ifdef DEBUG
     for (unsigned int i = 0; i < comBuffer.length(); i++)
     {
@@ -330,6 +261,100 @@ void getVersion() {
   while (Serial.available() < 1);
   delay(100);
   Serial.readString();   // clear buffer
+}
+
+void setLocalBaud() {
+  String comBuffer = "";
+  Serial.println("It is advised that baud rate is left at same setting as found hardware.");
+  Serial.print("Current baud rate: ");
+  Serial.println(baudRateList[baudRate]);
+  Serial.println("Select desired baud rate:");
+  Serial.println("\t(0) Cancel");
+  Serial.println("\t(1)---------1200");
+  Serial.println("\t(2)---------2400");
+  Serial.println("\t(3)---------4800");
+  Serial.println("\t(4)---------9600 (Default)");
+  Serial.println("\t(5)---------19200");
+  Serial.println("\t(6)---------38400");
+  Serial.println("\t(7)---------57600");
+  Serial.println("\t(8)---------115200");
+  Serial.println();
+
+  while (Serial.available() < 1);
+  command = Serial.readString();
+  int tempBaud = command.toInt() - 1;
+  if (tempBaud < 0) {
+    Serial.println("Canceled");
+  } else if (tempBaud < BAUD_LIST_CNT) {
+    Serial1.end();
+    delay(CONFIG_DELAY);
+    baudRate = tempBaud;
+    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
+    Serial.print("Set local baud rate to ");
+    Serial.println(baudRateList[baudRate]);
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
+  } else {
+    Serial.println("Invalid entry");
+  }
+  
+}
+
+void setLocalParity() {
+  String comBuffer = "";
+  Serial.println("It is advised that parity is left at same setting as found hardware.");
+  Serial.print("Current parity: ");
+  Serial.println(parityType[parity]);
+  Serial.println("Select parity option:");
+  Serial.println("\t(0) Cancel");
+  Serial.println("\t(1).......No parity");
+  Serial.println("\t(2).......Odd parity");
+  Serial.println("\t(3).......Even parity");
+  Serial.println();
+
+  while (Serial.available() < 1);
+  command = Serial.readString();
+  int tempParity = command.toInt() - 1;
+  if (tempParity < 0) {
+    Serial.println("Canceled");
+  } else if (tempParity < PARITY_LIST_CNT) {
+    Serial1.end();
+    delay(CONFIG_DELAY);
+    parity = tempParity;
+    Serial.println("Setting to " + parityType[parity] + " Parity check");
+    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
+  } else {
+    Serial.println("Invalid entry");
+  }
+  
+}
+
+void getVersion() {
+  String comBuffer = "";
+  command = atCommands[HCVERSION][firmVersion];
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, HCVERSION);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    Serial.print("\n[HC06]: ");
+    Serial.println(comBuffer);
+    Serial.println();
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++)
+    {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
+  }
+  testEcho();
 }
 
 String constructUARTstring(int baud, int prty, int stops) {
@@ -351,6 +376,7 @@ void setBaudRate() {
   Serial.println("\t(6)---------38400");
   Serial.println("\t(7)---------57600");
   Serial.println("\t(8)---------115200");
+  Serial.println();
 
   while (Serial.available() < 1);
   command = Serial.readString();
@@ -397,8 +423,8 @@ void setBaudRate() {
     delay(CONFIG_DELAY);
     Serial1.begin(baudRateList[baudRate], parityList[parity]);
     delay(CONFIG_DELAY);
-    Serial.println("Testing new baud rate configuration - request firmware version . . .");
-    getVersion();
+    Serial.println("Testing new baud rate configuration . . .");
+    testEcho();
   } else {
     Serial.println("Invalid entry");
   }
@@ -521,6 +547,7 @@ void setParity() {
   Serial.println("\t(1).......No parity");
   Serial.println("\t(2).......Odd parity");
   Serial.println("\t(3).......Even parity");
+  Serial.println();
 
   while (Serial.available() < 1);
   command = Serial.readString();
@@ -568,8 +595,8 @@ void setParity() {
     }
     Serial1.begin(baudRateList[baudRate], parityList[parity]);
     delay(CONFIG_DELAY);
-    Serial.println("Testing new parity configuration - request firmware version . . .");
-    getVersion();
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
   } else {
     Serial.println("Invalid entry");
   }
