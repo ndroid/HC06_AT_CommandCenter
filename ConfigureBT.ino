@@ -1,68 +1,63 @@
 /*
- * HC-06 AT Command Center
+ * HC-05/06 AT Command Center
+ *  Version 2.0
  * 
- *              Provides user menu for selecting configuration changes. Attempsts to identify 
- *              HC-06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
- *              version. NL+CR required by new firmware, but not older firmware. Arduino device
- *              UART settings can be changed to match HC-06 through program. HC-06 must be 
- *              in configuration mode (AT mode) (LED blinking to indicate Not Connected).
+ *  Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined. 
+ * 
+ *              Provides user menu for selecting configuration changes. Attempts to identify 
+ *              HC-05/06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
+ *              version. Serial1 automatically configured to match HC-06 UART settings. HC-05/06 
+ *              must be in configuration mode (AT mode) (LED blinking to indicate Not Connected).
+ *              Serial monitor settings are 57600 8N1.
  *              
  *              Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3).
  *              There is no documentation of a Version 3 firmware for HC-06. AT commands differ
- *              for HC-05 firmware. Support will be added for these devices in Revision 2 of
- *              this software.
+ *              for HC-05 firmware, including CR+NL command terminators. Support for this version
+ *              has been added beginning with Revision 2 of this software.
  *              
+ *              AT response delays:
+ *                Around 10~25ms for Version 3.x  (newline terminated) - max observed 35ms
+ *                Around 500ms for Version 1.x    (timeout terminated) - max observed 525ms
+ *                Serial writes are asynchronous, so delays must also consider write time
+ *                
  *    HC06 connections:
- *      TXD <--> [Serial 1 RX] (pin 13 on MKR WiFi board) 
- *      RXD <--> [Serial 1 TX] (pin 14 on MKR WiFi board)
+ *                              pin/board   Mega    MKR   Uno WiFi  Zero    Due
+ *      TXD <--> [Serial 1 RX]               19      13      0        0      19
+ *      RXD <--> [Serial 1 TX]               18      14      1        1      18
  *      
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 29-Apr, 2022
- *    Revision: 1.4
+ *    Modified: 22-Apr, 2023
+ *    Revision: 2.0
  */
- 
-#define BAUD_LIST_CNT   9       // count of baud rate options
-#define PARITY_LIST_CNT 4       // count of UART parity options
-#define ENDLINE_NLCR    "\r\n"    // for firmware version 3
-#define ENDLINE_NONE    ""        // for firmware version 1/2
-#define STATUS_OK       "OK"
+// uncomment following line to include debugging output to serial
+//#define DEBUG           1
 
-/* line ending to be applied to AT commands according to firmware version # */
-String lineEnding = ENDLINE_NLCR;
-char charFromBT;
-int baudRate = 1;
-int parity = 1;
-int selection;
-bool found = false;
-String hc06Version = "";
-String nameBT, pin, command;
-
-const unsigned long baudRateList[] = {0, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200};
-const uint8_t parityList[] = {0, SERIAL_8N1, SERIAL_8E1, SERIAL_8O1};
-const String parityType[] = {"Invalid", "None", "Even", "Odd"};
+#include "configureBT.h"
 
 void setup() {
+  // configure Serial Monitor UART (57600 8N1)
   Serial.begin(57600);
-  delay(4000); // allow device to pair after reset or power up 
+  delay(1000);
+  // configure Serial1 UART interface to HC-xx
   Serial1.begin(baudRateList[baudRate], parityList[parity]);
-  delay(100); 
-  //Serial1.println("Ready to receive characters over BT");
-  Serial.println("For accurate operation, set 'No line ending' in Serial Monitor setting (lower status bar)");
-//  scanDevice();
+  delay(CONFIG_DELAY); 
+  Serial.flush();
   printMenu();
 }
 
 void loop() {
+  // check for any messages from HC-xx UART
   while (Serial1.available() > 0) {
     Serial.print("[HC06]: ");
     Serial.println(Serial1.readString());
     Serial.println();
   }
 
+  // check for user selection of menu option
   if (Serial.available() > 0) {
-    selection = Serial.parseInt();
-    switch(selection) {
+    command = Serial.readString();
+    switch(command.toInt()) {
       case 1:
         setBaudRate();
         break;
@@ -99,21 +94,51 @@ void loop() {
   delay(100);
 }
 
+/*
+ * responseDelay
+ *  
+ * Delays for period necessary to allow completion of HC-xx response to command.
+ * 
+ *  characters  - count of characters in AT command
+ *  firmware    - firmware version identifier for HC-xx
+ *  command     - index of AT command (as defined in HC06commands)
+ */
+void responseDelay(unsigned long characters, int firmware, HC06commands command) {
+  if ((baudRate < 0) || (baudRate >= BAUD_LIST_CNT)) return;
+  unsigned long writeMS = (characters + responseChars[command]) * BITS_PER_CHAR * 1000 
+                              / baudRateList[baudRate];
+  delay(writeMS + responseMS[firmware]);
+}
+
+void clearInputStream(int firmware) {
+  if (firmware == FIRM_VERSION3) {
+    // ensure HC06 is not waiting for termination of partially complete command
+    Serial1.print(lineEnding[FIRM_VERSION3]);
+    Serial1.flush();
+    delay(FW3_RESPONSE);
+  }
+  while (Serial1.available() > 0) {
+    // wait until input stream is clear
+    Serial1.read();
+  }
+}
+
 void printMenu() {
+  while (VERSION_UNKNOWN) {
+    if (scanDevice()) break;
+    Serial.println();
+    Serial.println("Device version/configuration unknown.");
+    Serial.println("Check connections and hit any key to scan again.");
+  }
   Serial.println();
   Serial.println();
   Serial.write(12);   // Form feed (not supported in Serial Monitor)
-  if (found) {
-    Serial.print("Device found - Version: ");
-    Serial.println(hc06Version);
-    Serial.print("Current baud rate: ");
-    Serial.println(baudRateList[baudRate]);
-    Serial.print("Current parity: ");
-    Serial.println(parityType[parity]);
-  } else {
-    Serial.println("Device version/configuration unknown.");
-    Serial.println("Check connections and select option 8 to scan for device.");
-  }
+  Serial.print("Device found - Version: ");
+  Serial.println(hc06Version);
+  Serial.print("Current baud rate: ");
+  Serial.println(baudRateList[baudRate]);
+  Serial.print("Current parity: ");
+  Serial.println(parityType[parity]);
   Serial.println();
   Serial.println("Select option:");
   Serial.println("\t(1) Set HC06 Baud Rate");
@@ -124,30 +149,60 @@ void printMenu() {
   Serial.println("\t(6) Set local parity (for testing only)");
   Serial.println("\t(7) Get version (useful to verify connection/baud)");
   Serial.println("\t(8) Rescan HC06 device");
-  
+  Serial.println();
 }
 
-void scanDevice() {
-  lineEnding = ENDLINE_NLCR;
-  baudRate = 1;
-  parity = 1;
-  found = false;
+bool scanDevice() {
+  String comBuffer;
+  firmVersion = FIRM_UNKNOWN;
   hc06Version = "";
   
-  Serial.print("Searching for firmware and version of HC06");
-  while (!found) {
-    command = "AT" + lineEnding;  // test connection
-    while (parity < PARITY_LIST_CNT) {
-      while (baudRate < BAUD_LIST_CNT) {
+  Serial1.end();
+  delay(CONFIG_DELAY);
+  Serial.print("\nSearching for firmware and version of HC06");
+  // Scan through possible UART configurations for each firmware version. 
+  //  Use AT command to test for OK response.
+  for (int firmware = FIRM_VERSION3; firmware > FIRM_UNKNOWN; firmware--) {
+    for (parity = NOPARITY; parity < PARITY_LIST_CNT; parity++) {
+      // firmware version 3.x does not support baud rate below 4800
+      if (firmware == FIRM_VERSION3) {
+        baudRate = VERS3_MIN_BAUD;
+      } else {
+        baudRate = 0;
+      }
+      for ( ; baudRate < BAUD_LIST_CNT; baudRate++) {
+        // Test for Version x.x firmware AT echo
+        command = atCommands[ECHO][firmware]; // test connection
+#ifdef DEBUG
+        // debugging instructions to verify characters sent to UART
+        Serial.print("\nCommand length: ");
+        Serial.println(command.length());
+        for (unsigned int i = 0; i < command.length(); i++) {
+          Serial.print("\t");
+          Serial.print(command.charAt(i), HEX);
+        }
+        Serial.println();
+#endif
         Serial.print(" .");
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        delay(100); 
+        delay(CONFIG_DELAY);
+        clearInputStream(firmware);
         Serial1.print(command);
         Serial1.flush();
-        delay(1000); 
+        responseDelay(command.length(), firmware, ECHO);
         if (Serial1.available() > 0) {
-          if ((Serial1.readString()).startsWith(STATUS_OK)) {
-            found = true;
+          comBuffer = Serial1.readString();
+#ifdef DEBUG
+          Serial.println();
+          Serial.println(comBuffer);
+          for (unsigned int i = 0; i < comBuffer.length(); i++) {
+            Serial.print("\t");
+            Serial.print(comBuffer.charAt(i), HEX);
+          }
+          Serial.println();
+#endif
+          if (comBuffer.startsWith(STATUS_OK)) {
+            firmVersion = firmware;
             break;
           }
         }
@@ -155,40 +210,62 @@ void scanDevice() {
           // wait until input stream is clear
           Serial1.read();
         }
+        // end Test for Version x.x firmware
         Serial1.end();
-        baudRate++;
-        delay(100); 
-      }
-      if (found) break;
-      baudRate = 1;
-      parity++;
-    }
-    if (found) break;
-    if (lineEnding.startsWith(ENDLINE_NLCR)) {
-      // search for configuration using alternate firmware version
-      lineEnding = ENDLINE_NONE;
-      baudRate = 1;
-      parity = 1;
-    }
-    else {
-      break;
-    }
-  }
+        delay(CONFIG_DELAY);
+      } // end baud rate loop
+      if (VERSION_KNOWN)  break;
+    } // end parity loop
+    if (VERSION_KNOWN)  break;
+  } // end firmware loop
   Serial.println();
 
-  if (found) {
-    command = "AT+VERSION" + lineEnding;
+  if (VERSION_KNOWN) {
+    command = atCommands[HCVERSION][firmVersion];  // test connection
     Serial1.print(command);
     Serial1.flush();
-    delay(1000); 
+    responseDelay(command.length(), firmVersion, HCVERSION);
     if (Serial1.available() > 0) {
       hc06Version = Serial1.readString();
     }
   }
   
+  return (VERSION_KNOWN);
+}
+
+void testEcho() {
+  String comBuffer = "";
+  command = atCommands[ECHO][firmVersion];
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, ECHO);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    Serial.print("[HC06]: ");
+    Serial.println(comBuffer);
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++)
+    {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
+  }
+  if (!(comBuffer.startsWith(STATUS_OK))) {
+    Serial.println("OK response not received.");
+    firmVersion = FIRM_UNKNOWN;
+  }
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 void setLocalBaud() {
+  String comBuffer = "";
+  Serial.println("It is advised that baud rate is left at same setting as found hardware.");
   Serial.print("Current baud rate: ");
   Serial.println(baudRateList[baudRate]);
   Serial.println("Select desired baud rate:");
@@ -201,26 +278,23 @@ void setLocalBaud() {
   Serial.println("\t(6)---------38400");
   Serial.println("\t(7)---------57600");
   Serial.println("\t(8)---------115200");
+  Serial.println();
 
   while (Serial.available() < 1);
-  baudRate = Serial.parseInt();
-  if (baudRate == 0) {
+  command = Serial.readString();
+  int tempBaud = command.toInt() - 1;
+  if (tempBaud < 0) {
     Serial.println("Canceled");
-  } else if(baudRate < BAUD_LIST_CNT) {
+  } else if (tempBaud < BAUD_LIST_CNT) {
     Serial1.end();
+    delay(CONFIG_DELAY);
+    baudRate = tempBaud;
     Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
     Serial.print("Set local baud rate to ");
     Serial.println(baudRateList[baudRate]);
-    Serial.println();
-    command = "AT" + lineEnding;   // send echo to determine if current setting matches device
-    Serial1.print(command);
-    Serial1.flush();
-    delay(1000); 
-    while (Serial1.available() > 0) {
-      Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
-      Serial.println();
-    }
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
   } else {
     Serial.println("Invalid entry");
   }
@@ -228,66 +302,68 @@ void setLocalBaud() {
 }
 
 void setLocalParity() {
+  String comBuffer = "";
+  Serial.println("It is advised that parity is left at same setting as found hardware.");
   Serial.print("Current parity: ");
   Serial.println(parityType[parity]);
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
-  Serial.println("\t(2).......Even parity");
-  Serial.println("\t(3).......Odd parity");
+  Serial.println("\t(2).......Odd parity");
+  Serial.println("\t(3).......Even parity");
+  Serial.println();
 
   while (Serial.available() < 1);
-  parity = Serial.parseInt();
-  if (parity == 0) {
+  command = Serial.readString();
+  int tempParity = command.toInt() - 1;
+  if (tempParity < 0) {
     Serial.println("Canceled");
+  } else if (tempParity < PARITY_LIST_CNT) {
+    Serial1.end();
+    delay(CONFIG_DELAY);
+    parity = tempParity;
+    Serial.println("Setting to " + parityType[parity] + " Parity check");
+    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
   } else {
-    switch(parity) {
-      case 1:
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        Serial.println("Setting to No Parity check");
-        break;
-      case 2:
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        Serial.println("Setting to Even Parity check");
-        break;
-      case 3:
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        Serial.println("Setting to Odd Parity check");
-        break;
-      default:
-        Serial.println("Invalid entry");
-    }
-    Serial.println();
-    command = "AT" + lineEnding;   // send echo to determine if current setting matches device
-    Serial1.print(command);
-    Serial1.flush();
-    delay(1000); 
-    while (Serial1.available() > 0) {
-      Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
-      Serial.println();
-    }
+    Serial.println("Invalid entry");
   }
   
 }
 
 void getVersion() {
-  command = "AT+VERSION" + lineEnding;
+  String comBuffer = "";
+  command = atCommands[HCVERSION][firmVersion];
+  clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
-  delay(1000); 
-  while (Serial1.available() > 0) {
-    Serial.print("[HC06]: ");
-    Serial.println(Serial1.readString());
+  responseDelay(command.length(), firmVersion, HCVERSION);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    Serial.print("\n[HC06]: ");
+    Serial.println(comBuffer);
     Serial.println();
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++)
+    {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
   }
-  
+  testEcho();
+}
+
+String constructUARTstring(int baud, int prty, int stops) {
+  return String(UART_CMD) + baudRateList[baud] + "," + stops + "," 
+            + (prty) + lineEnding[FIRM_VERSION3];
 }
 
 void setBaudRate() {
+  String comBuffer = "";
   Serial.print("Current baud rate: ");
   Serial.println(baudRateList[baudRate]);
   Serial.println("Select desired baud rate:");
@@ -300,36 +376,55 @@ void setBaudRate() {
   Serial.println("\t(6)---------38400");
   Serial.println("\t(7)---------57600");
   Serial.println("\t(8)---------115200");
+  Serial.println();
 
   while (Serial.available() < 1);
-  baudRate = Serial.parseInt();
-  if (baudRate == 0) {
+  command = Serial.readString();
+  int tempBaud = command.toInt() - 1;
+  if (tempBaud < 0) {
     Serial.println("Canceled");
-  } else if(baudRate < BAUD_LIST_CNT) {
-    command = String("AT+BAUD") + baudRate + lineEnding;
+  } else if (tempBaud < BAUD_LIST_CNT) {
+    if (firmVersion == FIRM_VERSION3) {
+      if (tempBaud < VERS3_MIN_BAUD) {
+        Serial.println("Baud rates below 4800 not supported by this firmware.");
+        return;
+      }
+      command = constructUARTstring(tempBaud, parity, stopBits);
+    } else {
+      command = String(BAUD_CMD) + (tempBaud+1) + lineEnding[firmVersion];
+    }
     Serial.print("Setting HC06 and local baud rate to ");
-    Serial.println(baudRateList[baudRate]);
-    Serial.println("sending command:" + command);
+    Serial.println(baudRateList[tempBaud]);
+    Serial.println("\tsending command: " + command);
     Serial.println();
+    clearInputStream(firmVersion);
     Serial1.print(command);
     Serial1.flush();
-    Serial1.end();
-    Serial1.begin(baudRateList[baudRate], parityList[parity]);
-    delay(1000); 
-    while (Serial1.available() > 0) {
-      Serial1.readString();   // clear buffer
-      delay(100); 
-    }
-    // repeat command since response may be missed while changing baud rate
-    Serial.println("sending command:" + command);
-    Serial1.print(command);
-    Serial1.flush();
-    delay(1000); 
-    while (Serial1.available() > 0) {
+    responseDelay(command.length(), firmVersion, BAUD_SET);
+    if (Serial1.available() > 0) {
+      comBuffer = Serial1.readString();
       Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
+      Serial.println(comBuffer);
       Serial.println();
+#ifdef DEBUG
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
+        Serial.print("\t");
+        Serial.print(comBuffer.charAt(i), HEX);
+      }
+      Serial.println();
+#endif
     }
+    if (!(comBuffer.startsWith(STATUS_OK))) {
+      Serial.println("Request failed.");
+      return;
+    }
+    Serial1.end();
+    baudRate = tempBaud;
+    delay(CONFIG_DELAY);
+    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
+    Serial.println("Testing new baud rate configuration . . .");
+    testEcho();
   } else {
     Serial.println("Invalid entry");
   }
@@ -337,132 +432,173 @@ void setBaudRate() {
 }
 
 void setName() {
-  Serial.println("Enter BT name (max 15 characters): ");
+  String comBuffer = "";
+  Serial.println("Enter BT name (max 15 characters - prepends HC06_): ");
 
   while (Serial.available() < 1);
   nameBT = Serial.readString();
+  nameBT.trim();  // remove leading or trailing whitespaces (newline characters)
   if (nameBT.length() > 0) {
     nameBT = "HC06_" + nameBT.substring(0, 15);
     Serial.print("Setting name to ");
     Serial.println(nameBT);
-    command = String("AT+NAME") + nameBT + lineEnding;
-    Serial.println("sending command:" + command);
+    command = atCommands[BTNAME][firmVersion] + nameBT + lineEnding[firmVersion];
+    Serial.println("\tsending command: " + command);
+    clearInputStream(firmVersion);
     Serial1.print(command);
     Serial1.flush();
-    delay(1000); 
+    responseDelay(command.length(), firmVersion, BTNAME);
     while (Serial1.available() > 0) {
+      comBuffer = Serial1.readString();
       Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
+      Serial.println(comBuffer);
       Serial.println();
+#ifdef DEBUG
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
+        Serial.print("\t");
+        Serial.print(comBuffer.charAt(i), HEX);
+      }
+      Serial.println();
+#endif
+    }
+    if (!(comBuffer.startsWith(STATUS_OK))) {
+      Serial.println("Names above 14 characters fail for some FW Version 1.x baud settings.");
+      Serial.println("Try with alternate string less than 10 characters.");
     }
   } else {
     Serial.println("Invalid entry (empty string)");
   }
   
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 void setPin() {
-  Serial.println("Enter pin number (4 digits): ");
+  String pin;
+  if (firmVersion == FIRM_VERSION3) {
+    Serial.println("Enter new BT passkey (14 characters max): ");
+  } else {
+    Serial.println("Enter new pin number (4 digits): ");
+  }
 
   while (Serial.available() < 1);
   pin = Serial.readString();
-  if ((pin.length() == 4) && (pin.toInt() != 0)) {
-    Serial.print("Setting pin to ");
-    Serial.println(pin);
-    command = String("AT+PIN") + pin + lineEnding;
-    Serial.println("sending command:" + command);
-    Serial1.print(command);
-    Serial1.flush();
-    delay(1000); 
-    while (Serial1.available() > 0) {
-      Serial.print("[HC06]: ");
-      Serial.println(Serial1.readString());
-      Serial.println();
+  pin.trim();
+  if (firmVersion == FIRM_VERSION3) {
+    // version 3 FW appears to require quotes around passkey,
+    //  though this isn't indicated in documentation
+    //  https://forum.arduino.cc/t/password-hc-05/481294
+    pin = String("\"") + pin.substring(0, 14) + String("\"");
+  } else if (pin.length() == 4) {
+    for (unsigned int i = 0; i < 4; i++) {
+      if (!isDigit(pin.charAt(i))) {
+        Serial.println("Invalid entry (not 4-digit integer)");
+#ifdef DEBUG
+        Serial.print("\tCharacters: ");
+        for (i = 0; i < pin.length(); i++) {
+          Serial.print(pin[i], HEX);
+          Serial.print(" ");
+        }
+        Serial.println();
+#endif
+        return;
+      }
     }
   } else {
     Serial.println("Invalid entry (not 4-digit integer)");
-    Serial.print("Characters: ");
-    for (int i = 0; i < pin.length(); i++) {
+#ifdef DEBUG
+    Serial.print("\tCharacters: ");
+    for (unsigned int i = 0; i < pin.length(); i++) {
       Serial.print(pin[i], HEX);
       Serial.print(" ");
     }
     Serial.println();
+#endif
+    return;
   }
-  
+
+  Serial.print("Setting pin to ");
+  Serial.println(pin);
+  command = atCommands[BTPIN][firmVersion] + pin + lineEnding[firmVersion];
+  Serial.println("\tsending command: " + command);
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, BTPIN);
+  while (Serial1.available() > 0) {
+    Serial.print("[HC06]: ");
+    Serial.println(Serial1.readString());
+    Serial.println();
+  }
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
 
 void setParity() {
+  String comBuffer = "";
   Serial.print("Current parity: ");
   Serial.println(parityType[parity]);
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
-  Serial.println("\t(2).......Even parity");
-  Serial.println("\t(3).......Odd parity");
+  Serial.println("\t(2).......Odd parity");
+  Serial.println("\t(3).......Even parity");
+  Serial.println();
 
   while (Serial.available() < 1);
-  parity = Serial.parseInt();
-  if (parity == 0) {
+  command = Serial.readString();
+  int tempParity = command.toInt() - 1;
+  if (tempParity < 0) {
     Serial.println("Canceled");
-  } else {
-    switch(parity) {
-      case 1:
-        command = "AT+PN" + lineEnding;
-        Serial.println("Setting to No Parity check");
-        Serial.println("sending command:" + command);
-        Serial1.print(command);
-        Serial1.flush();
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        break;
-      case 2:
-        command = "AT+PE" + lineEnding;
-        Serial.println("Setting to Even Parity check");
-        Serial.println("sending command:" + command);
-        Serial1.print(command);
-        Serial1.flush();
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        break;
-      case 3:
-        command = "AT+PO" + lineEnding;
-        Serial.println("Setting to Odd Parity check");
-        Serial.println("sending command:" + command);
-        Serial1.print(command);
-        Serial1.flush();
-        Serial1.end();
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
-        break;
-      default:
-        command = "AT" + lineEnding;     // to avoid error in sending command below
-        Serial.println("Invalid entry");
+  } else if (tempParity < PARITY_LIST_CNT) {
+    if (firmVersion == FIRM_VERSION3) {
+      command = constructUARTstring(baudRate, tempParity, stopBits);
+    } else {
+      command = parityCmd[tempParity];
     }
-    if ((command.length() - lineEnding.length()) > 2) {
+    Serial.println("Setting to " + parityType[tempParity] + " Parity check");
+    Serial.println("\tsending command: " + command);
+    clearInputStream(firmVersion);
+    Serial1.print(command);
+    Serial1.flush();
+    responseDelay(command.length(), firmVersion, PARITY_SET);
+
+    if (Serial1.available() > 0) {
+      comBuffer = Serial1.readString();
+      Serial.print("[HC06]: ");
+      Serial.println(comBuffer);
+      Serial.println();
+#ifdef DEBUG
+      for (unsigned int i = 0; i < comBuffer.length(); i++) {
+        Serial.print("\t");
+        Serial.print(comBuffer.charAt(i), HEX);
+      }
+      Serial.println();
+#endif
+    }
+    if (!(comBuffer.startsWith(STATUS_OK))) {
+      Serial.println("Request failed.");
+      return;
+    }
+    Serial1.end();
+    parity = tempParity;
+    delay(CONFIG_DELAY);
+    if (firmVersion == FIRM_VERSION1) {
       Serial.println("To complete change of parity, remove then reconnect power to HC-06.");
       Serial.println("Enter any character when complete (LED should be blinking).");
       while (Serial.available() < 1);
       Serial.readString();   // clear buffer
-//            delay(1000); 
-      while (Serial1.available() > 0) {
-        Serial1.readString();   // clear buffer
-        delay(100); 
-      }
-      // send echo command to verify device at new baud rate
-      command = "AT" + lineEnding;
-      Serial.println("Verifying completion - sending command:" + command);
-      Serial1.print(command);
-      Serial1.flush();
-      delay(1000); 
-      found = false;
-      if (Serial1.available() > 0) {
-        if ((Serial1.readString()).startsWith(STATUS_OK)) {
-          Serial.println("[HC06]: OK");
-          found = true;
-          return;
-        }
-      }
-      Serial.println("Confirmation not received");
     }
+    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    delay(CONFIG_DELAY);
+    Serial.println("Testing new parity configuration . . .");
+    testEcho();
+  } else {
+    Serial.println("Invalid entry");
   }
   
 }
