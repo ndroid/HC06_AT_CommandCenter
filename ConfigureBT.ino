@@ -91,7 +91,7 @@ void loop() {
     printMenu();
   }
   
-  delay(100);
+  delay(SHORT_DELAY);
 }
 
 /*
@@ -110,6 +110,13 @@ void responseDelay(unsigned long characters, int firmware, HC06commands command)
   delay(writeMS + responseMS[firmware]);
 }
 
+/*
+ * clearInputStream
+ *  
+ * Clears Serial1 input buffers before requesting new response.
+ * 
+ *  firmware    - firmware version identifier for HC-xx
+ */
 void clearInputStream(int firmware) {
   if (firmware == FIRM_VERSION3) {
     // ensure HC06 is not waiting for termination of partially complete command
@@ -123,6 +130,13 @@ void clearInputStream(int firmware) {
   }
 }
 
+/*
+ * printMenu
+ *  
+ * Print menu of options for configuration of UART or Bluetooth module. 
+ * Will first check for identified connected device, and request scan if
+ * firmware and configuration of connected device is not known.
+ */
 void printMenu() {
   while (VERSION_UNKNOWN) {
     if (scanDevice()) break;
@@ -152,6 +166,15 @@ void printMenu() {
   Serial.println();
 }
 
+/*
+ * scanDevice
+ *  
+ * Automated scan of Bluetooth module to determine configuration of UART.
+ * Will identify version of firmware, baud rate, and parity setting, and set
+ * Serial1 to match HC-xx UART settings.
+ * 
+ * returns true if UART configuration successfully identified
+ */
 bool scanDevice() {
   String comBuffer;
   firmVersion = FIRM_UNKNOWN;
@@ -172,7 +195,7 @@ bool scanDevice() {
       }
       for ( ; baudRate < BAUD_LIST_CNT; baudRate++) {
         // Test for Version x.x firmware AT echo
-        command = atCommands[ECHO][firmware]; // test connection
+        command = atCommands[ECHO][firmware]; // AT command
 #ifdef DEBUG
         // debugging instructions to verify characters sent to UART
         Serial.print("\nCommand length: ");
@@ -184,6 +207,7 @@ bool scanDevice() {
         Serial.println();
 #endif
         Serial.print(" .");
+        // set to new baud rate and parity setting and test connection
         Serial1.begin(baudRateList[baudRate], parityList[parity]);
         delay(CONFIG_DELAY);
         clearInputStream(firmware);
@@ -201,6 +225,7 @@ bool scanDevice() {
           }
           Serial.println();
 #endif
+          // if OK response received, UART configuration found
           if (comBuffer.startsWith(STATUS_OK)) {
             firmVersion = firmware;
             break;
@@ -220,8 +245,9 @@ bool scanDevice() {
   } // end firmware loop
   Serial.println();
 
+  // If configuration successfully determined, update firmware version string
   if (VERSION_KNOWN) {
-    command = atCommands[HCVERSION][firmVersion];  // test connection
+    command = atCommands[HCVERSION][firmVersion];
     Serial1.print(command);
     Serial1.flush();
     responseDelay(command.length(), firmVersion, HCVERSION);
@@ -233,6 +259,12 @@ bool scanDevice() {
   return (VERSION_KNOWN);
 }
 
+/*
+ * testEcho
+ *  
+ * Send AT command to test configuration of UART.
+ * If OK response not received, firmVersion set to FIRM_UNKNOWN.
+ */
 void testEcho() {
   String comBuffer = "";
   command = atCommands[ECHO][firmVersion];
@@ -259,10 +291,16 @@ void testEcho() {
   }
   Serial.println("\nEnter any character to return to menu.");
   while (Serial.available() < 1);
-  delay(100);
+  delay(SHORT_DELAY);
   Serial.readString();   // clear buffer
 }
 
+/*
+ * setLocalBaud
+ *  
+ * Manually configure baud rate of Serial1, for testing/debugging purposes. 
+ * Preferred to allow scanDevice() to automatically set configuration.
+ */
 void setLocalBaud() {
   String comBuffer = "";
   Serial.println("It is advised that baud rate is left at same setting as found hardware.");
@@ -301,6 +339,12 @@ void setLocalBaud() {
   
 }
 
+/*
+ * setLocalParity
+ *  
+ * Manually configure parity of Serial1, for testing/debugging purposes. 
+ * Preferred to allow scanDevice() to automatically set configuration.
+ */
 void setLocalParity() {
   String comBuffer = "";
   Serial.println("It is advised that parity is left at same setting as found hardware.");
@@ -333,6 +377,11 @@ void setLocalParity() {
   
 }
 
+/*
+ * getVersion
+ *  
+ * Send AT command to request firmware version to Serial1 and display response.
+ */
 void getVersion() {
   String comBuffer = "";
   command = atCommands[HCVERSION][firmVersion];
@@ -357,11 +406,34 @@ void getVersion() {
   testEcho();
 }
 
+/*
+ * constructUARTstring
+ *  
+ * Constructs string for AT command to configure UART (for firmware vers 3.x)
+ * 
+ *  baud    - baud rate value (e.g. 57600)
+ *  prty    - parity setting
+ *                0 - None
+ *                1 - Odd parity
+ *                2 - Even parity
+ *  stops   - number of stop bits
+ *                0 - 1 bit
+ *                1 - 2 bits
+ * 
+ *  returns String for AT command
+ */
 String constructUARTstring(int baud, int prty, int stops) {
   return String(UART_CMD) + baudRateList[baud] + "," + stops + "," 
             + (prty) + lineEnding[FIRM_VERSION3];
 }
 
+/*
+ * setBaudRate
+ *  
+ * Configure baud rate of HC-xx UART.
+ * Sends AT command to configure baud rate of HC-xx UART and displays response.
+ * If successful, updates Serial1 configuration to new UART settings.
+ */
 void setBaudRate() {
   String comBuffer = "";
   Serial.print("Current baud rate: ");
@@ -384,9 +456,12 @@ void setBaudRate() {
   if (tempBaud < 0) {
     Serial.println("Canceled");
   } else if (tempBaud < BAUD_LIST_CNT) {
+    // construct AT command for UART configuration based on firmware version
     if (firmVersion == FIRM_VERSION3) {
+      // firmware version 3.x does not support baud rate below 4800
       if (tempBaud < VERS3_MIN_BAUD) {
-        Serial.println("Baud rates below 4800 not supported by this firmware.");
+        Serial.println("\nBaud rates below 4800 not supported by this firmware.");
+        delay(MENU_DELAY);
         return;
       }
       command = constructUARTstring(tempBaud, parity, stopBits);
@@ -415,9 +490,11 @@ void setBaudRate() {
 #endif
     }
     if (!(comBuffer.startsWith(STATUS_OK))) {
-      Serial.println("Request failed.");
+      Serial.println("\nRequest failed.");
+      delay(MENU_DELAY);
       return;
     }
+    // if OK response received, change Serial1 UART settings to match HC-xx
     Serial1.end();
     baudRate = tempBaud;
     delay(CONFIG_DELAY);
@@ -431,6 +508,15 @@ void setBaudRate() {
   
 }
 
+/*
+ * setName
+ *  
+ * Configure name of Bluetooth module.
+ * Sends AT command to set Bluetooth broadcast name of HC-xx device. Prepends 
+ * 'HC06_' to user input string. Some devices with firmware version 1.x 
+ * exhibited failures when trying to set name to more than 14 characters with
+ * higher baud rates.
+ */
 void setName() {
   String comBuffer = "";
   Serial.println("Enter BT name (max 15 characters - prepends HC06_): ");
@@ -439,6 +525,7 @@ void setName() {
   nameBT = Serial.readString();
   nameBT.trim();  // remove leading or trailing whitespaces (newline characters)
   if (nameBT.length() > 0) {
+    // prepend user provided string with HC06_ to produce max 20 character name
     nameBT = "HC06_" + nameBT.substring(0, 15);
     Serial.print("Setting name to ");
     Serial.println(nameBT);
@@ -471,10 +558,20 @@ void setName() {
   
   Serial.println("\nEnter any character to return to menu.");
   while (Serial.available() < 1);
-  delay(100);
+  delay(SHORT_DELAY);
   Serial.readString();   // clear buffer
 }
 
+/*
+ * setPin
+ *  
+ * Configure Bluetooth pin of HC-xx device.
+ * Sends AT command to configure BT pin/passkey of HC-xx UART device.
+ * For firmware version 1.x, 4-digit code is accepted. For firmware version
+ * 3.x, up to 16 alphanumeric character passkey is accepted according to 
+ * documentation. This is artificially limited to 14 characters to ensure no
+ * conflict with adding quotation characters.
+ */
 void setPin() {
   String pin;
   if (firmVersion == FIRM_VERSION3) {
@@ -487,14 +584,15 @@ void setPin() {
   pin = Serial.readString();
   pin.trim();
   if (firmVersion == FIRM_VERSION3) {
-    // version 3 FW appears to require quotes around passkey,
+    // version 3.x FW appears to require quotes around passkey,
     //  though this isn't indicated in documentation
     //  https://forum.arduino.cc/t/password-hc-05/481294
     pin = String("\"") + pin.substring(0, 14) + String("\"");
   } else if (pin.length() == 4) {
+    // for firware version 1.x, verify 4 numeric characters received
     for (unsigned int i = 0; i < 4; i++) {
       if (!isDigit(pin.charAt(i))) {
-        Serial.println("Invalid entry (not 4-digit integer)");
+        Serial.println("\nInvalid entry (not 4-digit integer)");
 #ifdef DEBUG
         Serial.print("\tCharacters: ");
         for (i = 0; i < pin.length(); i++) {
@@ -503,11 +601,12 @@ void setPin() {
         }
         Serial.println();
 #endif
+        delay(MENU_DELAY);
         return;
       }
     }
   } else {
-    Serial.println("Invalid entry (not 4-digit integer)");
+    Serial.println("\nInvalid entry (not 4-digit integer)");
 #ifdef DEBUG
     Serial.print("\tCharacters: ");
     for (unsigned int i = 0; i < pin.length(); i++) {
@@ -516,6 +615,7 @@ void setPin() {
     }
     Serial.println();
 #endif
+    delay(MENU_DELAY);
     return;
   }
 
@@ -534,10 +634,17 @@ void setPin() {
   }
   Serial.println("\nEnter any character to return to menu.");
   while (Serial.available() < 1);
-  delay(100);
+  delay(SHORT_DELAY);
   Serial.readString();   // clear buffer
 }
 
+/*
+ * setParity
+ *  
+ * Configure parity of HC-xx UART.
+ * Sends AT command to configure parity of HC-xx UART and displays response.
+ * If successful, updates Serial1 configuration to new UART settings.
+ */
 void setParity() {
   String comBuffer = "";
   Serial.print("Current parity: ");
@@ -555,6 +662,7 @@ void setParity() {
   if (tempParity < 0) {
     Serial.println("Canceled");
   } else if (tempParity < PARITY_LIST_CNT) {
+    // construct AT command for UART configuration based on firmware version
     if (firmVersion == FIRM_VERSION3) {
       command = constructUARTstring(baudRate, tempParity, stopBits);
     } else {
@@ -581,12 +689,15 @@ void setParity() {
 #endif
     }
     if (!(comBuffer.startsWith(STATUS_OK))) {
-      Serial.println("Request failed.");
+      Serial.println("\nRequest failed.");
+      delay(MENU_DELAY);
       return;
     }
+    // if OK response received, change Serial1 UART settings to match HC-xx
     Serial1.end();
     parity = tempParity;
     delay(CONFIG_DELAY);
+    // firmware version 1.x requires power-cycle of HC-06 to update parity settings
     if (firmVersion == FIRM_VERSION1) {
       Serial.println("To complete change of parity, remove then reconnect power to HC-06.");
       Serial.println("Enter any character when complete (LED should be blinking).");

@@ -32,6 +32,8 @@
 #define EVENPARITY      2
 
 #define CONFIG_DELAY    20      // delay for basic configuration changes
+#define SHORT_DELAY     100     // brief delay constant for UI
+#define MENU_DELAY      2000    // delay before returning to menu after fault
 #define FW1_RESPONSE    550     // for firmware version 1/2
 #define FW3_RESPONSE    40      // for firmware version 3
 #define BITS_PER_CHAR   12      // UART frames - worst case: parity, 2 stop bits
