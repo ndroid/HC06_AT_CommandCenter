@@ -5,7 +5,7 @@
  * 
  *  Created on: 22-Apr, 2023
  *      Author: miller4@rose-hulman.edu
- *    Modified: 22-Apr, 2023
+ *    Modified: 26-Apr, 2023
  */
 
 #ifndef CONFIGUREBT_H
@@ -17,12 +17,21 @@
 #define FIRM_UNKNOWN   -1         // index for unknown firmware 
 #define FIRM_VERSION1   0         // index for firmware 1.x/2.x models
 #define FIRM_VERSION3   1         // index for firmware 3.x models
+#define MODEL_UNKNOWN  -1         // index for unknown HC-xx device model
+#define MODEL_HC06      0         // index for HC-06 device models
+#define MODEL_HC05      1         // index for HC-05 device models
+#define ROLE_UNKNOWN   -1         // index for unknown device role
+#define ROLE_SLAVE      0         // index for HC-05 devices in slave role
+#define ROLE_MASTER     1         // index for HC-05 devices in master role
+#define ROLE_SLAVE_LOOP 2         // index for HC-05 devices in slave-loop role
 
 #define ENDLINE_NLCR    "\r\n"    // for firmware version 3
 #define ENDLINE_NONE    ""        // for firmware version 1/2
 #define STATUS_OK       "OK"
 #define UART_CMD        "AT+UART="
 #define BAUD_CMD        "AT+BAUD"
+#define ROLE_CMD        "AT+ROLE="
+#define ROLE_REQ        "AT+ROLE?\r\n"
 
 // values for UART configuration
 #define STOP1BIT        0
@@ -48,6 +57,7 @@ const unsigned long baudRateList[] = {1200, 2400, 4800, 9600, 19200,
 const uint8_t parityList[] = {SERIAL_8N1, SERIAL_8O1, SERIAL_8E1};
 const String parityType[] = {"None", "Odd", "Even"};
 const String parityCmd[] = {"AT+PN", "AT+PO", "AT+PE"};
+const String roleString[] = {"Slave", "Master", "Slave-Loop"};
 const String lineEnding[] = {"", "\r\n"};
 const String atCommands[][2] = {
                               {"AT", "AT\r\n"},
@@ -79,7 +89,9 @@ const int responseChars[] = {
 const unsigned long responseMS[] = {FW1_RESPONSE, FW3_RESPONSE};
 
 // global variables
+int deviceModel = MODEL_UNKNOWN;
 int firmVersion = FIRM_UNKNOWN;
+int deviceRole = ROLE_UNKNOWN;
 int baudRate = VERS3_MIN_BAUD;
 int parity = NOPARITY;
 int stopBits = STOP1BIT;

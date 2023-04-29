@@ -1,12 +1,12 @@
 /*
  * HC-05/06 AT Command Center
- *  Version 2.0
+ *  Version 3.0
  * 
  *  Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined. 
  * 
- *              Provides user menu for selecting configuration changes. Attempts to identify 
- *              HC-05/06 frame and baud settings (9600 8N1 default HC-06 settings), and firmware
- *              version. Serial1 automatically configured to match HC-06 UART settings. HC-05/06 
+ *              Provides user menu for selecting configuration changes. Automatically identifies
+ *              devive (HC-05 or HC-06), firmware version, baud and parity settings.
+ *              Serial1 automatically configured to match HC-05/06 UART settings. HC-05/06 
  *              must be in configuration mode (AT mode) (LED blinking to indicate Not Connected).
  *              Serial monitor settings are 57600 8N1.
  *              
@@ -20,20 +20,44 @@
  *                Around 500ms for Version 1.x    (timeout terminated) - max observed 525ms
  *                Serial writes are asynchronous, so delays must also consider write time
  *                
- *    HC06 connections:
- *                              pin/board   Mega    MKR   Uno WiFi  Zero    Due
- *      TXD <--> [Serial 1 RX]               19      13      0        0      19
- *      RXD <--> [Serial 1 TX]               18      14      1        1      18
+ *    HC06 connections (for 5V boards - resistors not needed for 3V3):
+ * 
+ *                TXD <----------------> [Serial 1 RX]
+ *                RXD <----+---R_220---> [Serial 1 TX]
+ *                         |
+ *                         |
+ *                       R_330
+ *                         |
+ *                         |
+ *                        Vss
+ * 
+ *    HC05 connections: same as above, but also include (for AT mode selection)
+ * 
+ *                RXD <----+---R_220---> [pin 10]
+ *                         |
+ *                         |
+ *                       R_330
+ *                         |
+ *                         |
+ *                        Vss
+ * 
+ *    Pin connections:
+ *                    board        Mega    MKR   Uno WiFi  Zero    Due
+ *      -------------------+-------------------------------------------
+ *        [Serial 1 RX]    |        19      13      0        0      19
+ *        [Serial 1 TX]    |        18      14      1        1      18
  *      
+ * 
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 22-Apr, 2023
- *    Revision: 2.0
+ *    Modified: 28-Apr, 2023
+ *    Revision: 3.0
  */
 // uncomment following line to include debugging output to serial
 //#define DEBUG           1
 
 #include "configureBT.h"
+#include "hc05.h"
 
 void setup() {
   // configure Serial Monitor UART (57600 8N1)
@@ -43,6 +67,7 @@ void setup() {
   Serial1.begin(baudRateList[baudRate], parityList[parity]);
   delay(CONFIG_DELAY); 
   Serial.flush();
+  disableCMDpin();
   printMenu();
 }
 
@@ -92,6 +117,36 @@ void loop() {
   }
   
   delay(SHORT_DELAY);
+}
+
+/*
+ * setCommandMode
+ *
+ * Set CMD pin high to place HC-05 in command mode.
+ */
+void setCommandMode() {
+  pinMode(CMD_PIN, OUTPUT);
+  digitalWrite(CMD_PIN, MODE_COMMAND);
+}
+
+/*
+ * setDataMode
+ *
+ * Set CMD pin low to place HC-05 in data mode.
+ */
+void setDataMode() {
+  // TODO use disableCMDpin instead?
+  pinMode(CMD_PIN, OUTPUT);
+  digitalWrite(CMD_PIN, MODE_DATA);
+}
+
+/*
+ * disableCMDpin
+ *
+ * Disconnect output to CMD pin.
+ */
+void disableCMDpin() {
+  pinMode(CMD_PIN, INPUT);  // set to input allow CMD pin to float
 }
 
 /*
@@ -228,6 +283,17 @@ bool scanDevice() {
           // if OK response received, UART configuration found
           if (comBuffer.startsWith(STATUS_OK)) {
             firmVersion = firmware;
+            // firmware version 3.x does not support baud rate below 4800
+            if (firmware == FIRM_VERSION3) {
+              // TODO call getRole then setRole
+              if (getRole() == ROLE_SLAVE) {
+                if (setRole(ROLE_SLAVE)) {
+                  deviceModel = MODEL_HC05;
+                } else {
+                  deviceModel = MODEL_HC06;
+                }
+              }
+            }
             break;
           }
         }
@@ -293,6 +359,96 @@ void testEcho() {
   while (Serial.available() < 1);
   delay(SHORT_DELAY);
   Serial.readString();   // clear buffer
+}
+
+/*
+ * getRole
+ *  
+ * Send AT command to request current BT role of device.
+ * Returns ROLE_SLAVE, ROLE_MASTER, or ROLE_SLAVE_LOOP.
+ */
+int getRole() {
+  String comBuffer = "";
+  int role;
+  command = String(ROLE_REQ);
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, ECHO);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    Serial.println("\nRequesting device role.");
+    Serial.print("[HC06]: ");
+    Serial.println(comBuffer);
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++)
+    {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
+  }
+  role = comBuffer.indexOf(':');
+  if (role < 0) {
+    deviceRole = ROLE_UNKNOWN;
+  } else {
+    switch (comBuffer.charAt(role)) {
+      case '0': deviceRole = ROLE_SLAVE;
+                break;
+      case '1': deviceRole = ROLE_MASTER;
+                break;
+      case '2': deviceRole = ROLE_SLAVE_LOOP;
+                break;
+      default:  deviceRole = ROLE_UNKNOWN;
+    }
+  }
+  if (deviceRole == ROLE_UNKNOWN) {
+    Serial.println("Role response not identified.");
+  } else {
+    Serial.println("Device role is: " + roleString[deviceRole]);
+  }
+  return deviceRole;
+}
+
+/*
+ * setRole
+ *  
+ * Send AT command to set BT role of device.
+ * Returns true if request succeeds.
+ */
+bool setRole(unsigned int role) {
+  String comBuffer = "";
+  if (role > ROLE_SLAVE_LOOP) 
+    return false;
+  command = String(ROLE_CMD) + role + lineEnding[FIRM_VERSION3];
+//  Serial.print("Set role of HC05 to ");
+//  Serial.println(roleString[role]);
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, ECHO);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    Serial.print("[HC06]: ");
+    Serial.println(comBuffer);
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++)
+    {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
+  }
+  if (!(comBuffer.startsWith(STATUS_OK))) {
+    Serial.println("Device role not set.");
+//    deviceRole = ROLE_UNKNOWN;  // don't modify role since it may be HC06
+    return false;
+  }
+  deviceRole = role;
+  Serial.println("Device role set to: " + roleString[deviceRole]);
+  return true;
 }
 
 /*
