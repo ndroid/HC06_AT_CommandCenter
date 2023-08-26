@@ -1,4 +1,6 @@
-/*
+/**
+ * @file hc05.h
+ * 
  * HC-05/06 AT Command Center
  * 
  *  Description: Header file for HC-05 related constants. 

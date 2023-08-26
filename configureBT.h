@@ -1,4 +1,6 @@
-/*
+/**
+ * @file configureBT.h
+ * 
  * HC-05/06 AT Command Center
  * 
  *  Description: Header file for simple HC05/06 AT configuration program. 

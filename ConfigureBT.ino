@@ -1,11 +1,13 @@
-/*
+/**
+ * @file ConfigureBT.ino
+ * 
  * HC-05/06 AT Command Center
  *  Version 3.0
  * 
  *  Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined. 
  * 
  *              Provides user menu for selecting configuration changes. Automatically identifies
- *              devive (HC-05 or HC-06), firmware version, baud and parity settings.
+ *              device (HC-05 or HC-06), firmware version, baud and parity settings.
  *              Serial1 automatically configured to match HC-05/06 UART settings. HC-05/06 
  *              must be in configuration mode (AT mode) (LED blinking to indicate Not Connected).
  *              Serial monitor settings are 57600 8N1.
@@ -33,7 +35,7 @@
  * 
  *    HC05 connections: same as above, but also include (for AT mode selection)
  * 
- *                RXD <----+---R_220---> [pin 10]
+ *                CMD <----+---R_220---> [pin 10]
  *                         |
  *                         |
  *                       R_330
@@ -42,15 +44,15 @@
  *                        Vss
  * 
  *    Pin connections:
- *                    board        Mega    MKR   Uno WiFi  Zero    Due
- *      -------------------+-------------------------------------------
- *        [Serial 1 RX]    |        19      13      0        0      19
- *        [Serial 1 TX]    |        18      14      1        1      18
+ *                    board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
+ *      -------------------+-------------------------------------------------------
+ *        [Serial 1 RX]    |        19      13      0        0      19       3 
+ *        [Serial 1 TX]    |        18      14      1        1      18       4 
  *      
  * 
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 28-Apr, 2023
+ *    Modified: 25-Aug, 2023
  *    Revision: 3.0
  */
 // uncomment following line to include debugging output to serial
@@ -119,20 +121,20 @@ void loop() {
   delay(SHORT_DELAY);
 }
 
-/*
+/**
  * setCommandMode
  *
- * Set CMD pin high to place HC-05 in command mode.
+ * @brief Set CMD pin high to place HC-05 in command mode.
  */
 void setCommandMode() {
   pinMode(CMD_PIN, OUTPUT);
   digitalWrite(CMD_PIN, MODE_COMMAND);
 }
 
-/*
+/**
  * setDataMode
  *
- * Set CMD pin low to place HC-05 in data mode.
+ * @brief Set CMD pin low to place HC-05 in data mode.
  */
 void setDataMode() {
   // TODO use disableCMDpin instead?
@@ -140,23 +142,23 @@ void setDataMode() {
   digitalWrite(CMD_PIN, MODE_DATA);
 }
 
-/*
+/**
  * disableCMDpin
  *
- * Disconnect output to CMD pin.
+ * @brief Disconnect output to CMD pin.
  */
 void disableCMDpin() {
   pinMode(CMD_PIN, INPUT);  // set to input allow CMD pin to float
 }
 
-/*
+/**
  * responseDelay
  *  
- * Delays for period necessary to allow completion of HC-xx response to command.
+ * @brief Delays for period necessary to allow completion of HC-xx response to command.
  * 
- *  characters  - count of characters in AT command
- *  firmware    - firmware version identifier for HC-xx
- *  command     - index of AT command (as defined in HC06commands)
+ * @param characters  count of characters in AT command
+ * @param firmware    firmware version identifier for HC-xx
+ * @param command     index of AT command (as defined in HC06commands)
  */
 void responseDelay(unsigned long characters, int firmware, HC06commands command) {
   if ((baudRate < 0) || (baudRate >= BAUD_LIST_CNT)) return;
@@ -165,12 +167,12 @@ void responseDelay(unsigned long characters, int firmware, HC06commands command)
   delay(writeMS + responseMS[firmware]);
 }
 
-/*
+/**
  * clearInputStream
  *  
- * Clears Serial1 input buffers before requesting new response.
+ * @brief Clears Serial1 input buffers before requesting new response.
  * 
- *  firmware    - firmware version identifier for HC-xx
+ * @param firmware    firmware version identifier for HC-xx
  */
 void clearInputStream(int firmware) {
   if (firmware == FIRM_VERSION3) {
@@ -185,7 +187,7 @@ void clearInputStream(int firmware) {
   }
 }
 
-/*
+/**
  * printMenu
  *  
  * Print menu of options for configuration of UART or Bluetooth module. 
@@ -221,14 +223,14 @@ void printMenu() {
   Serial.println();
 }
 
-/*
+/**
  * scanDevice
  *  
  * Automated scan of Bluetooth module to determine configuration of UART.
  * Will identify version of firmware, baud rate, and parity setting, and set
  * Serial1 to match HC-xx UART settings.
  * 
- * returns true if UART configuration successfully identified
+ * @returns true if UART configuration successfully identified
  */
 bool scanDevice() {
   String comBuffer;
@@ -325,7 +327,7 @@ bool scanDevice() {
   return (VERSION_KNOWN);
 }
 
-/*
+/**
  * testEcho
  *  
  * Send AT command to test configuration of UART.
@@ -361,11 +363,13 @@ void testEcho() {
   Serial.readString();   // clear buffer
 }
 
-/*
+/**
  * getRole
  *  
- * Send AT command to request current BT role of device.
- * Returns ROLE_SLAVE, ROLE_MASTER, or ROLE_SLAVE_LOOP.
+ * Send AT command to request current BT role for HC-05 device.
+ * 
+ * @returns  ROLE_SLAVE, ROLE_MASTER, or ROLE_SLAVE_LOOP. HC-06 device will
+ *  return ROLE_UNKNOWN.
  */
 int getRole() {
   String comBuffer = "";
@@ -411,11 +415,12 @@ int getRole() {
   return deviceRole;
 }
 
-/*
+/**
  * setRole
  *  
- * Send AT command to set BT role of device.
- * Returns true if request succeeds.
+ * Send AT command to set BT role of HC-05 device.
+ * 
+ * @returns true if request succeeds.
  */
 bool setRole(unsigned int role) {
   String comBuffer = "";
@@ -451,7 +456,7 @@ bool setRole(unsigned int role) {
   return true;
 }
 
-/*
+/**
  * setLocalBaud
  *  
  * Manually configure baud rate of Serial1, for testing/debugging purposes. 
@@ -495,7 +500,7 @@ void setLocalBaud() {
   
 }
 
-/*
+/**
  * setLocalParity
  *  
  * Manually configure parity of Serial1, for testing/debugging purposes. 
@@ -533,7 +538,7 @@ void setLocalParity() {
   
 }
 
-/*
+/**
  * getVersion
  *  
  * Send AT command to request firmware version to Serial1 and display response.
@@ -562,28 +567,28 @@ void getVersion() {
   testEcho();
 }
 
-/*
+/**
  * constructUARTstring
  *  
- * Constructs string for AT command to configure UART (for firmware vers 3.x)
+ * @brief Constructs string for AT command to configure UART (for firmware vers 3.x)
  * 
- *  baud    - baud rate value (e.g. 57600)
- *  prty    - parity setting
- *                0 - None
- *                1 - Odd parity
- *                2 - Even parity
- *  stops   - number of stop bits
- *                0 - 1 bit
- *                1 - 2 bits
+ * @param baud    baud rate value (e.g. 57600)
+ * @param prty    parity setting
+ *                - 0 - None
+ *                - 1 - Odd parity
+ *                - 2 - Even parity
+ * @param stops   number of stop bits
+ *                - 0 - 1 bit
+ *                - 1 - 2 bits
  * 
- *  returns String for AT command
+ *  @returns String for AT command
  */
 String constructUARTstring(int baud, int prty, int stops) {
   return String(UART_CMD) + baudRateList[baud] + "," + stops + "," 
             + (prty) + lineEnding[FIRM_VERSION3];
 }
 
-/*
+/**
  * setBaudRate
  *  
  * Configure baud rate of HC-xx UART.
@@ -664,7 +669,7 @@ void setBaudRate() {
   
 }
 
-/*
+/**
  * setName
  *  
  * Configure name of Bluetooth module.
@@ -718,7 +723,7 @@ void setName() {
   Serial.readString();   // clear buffer
 }
 
-/*
+/**
  * setPin
  *  
  * Configure Bluetooth pin of HC-xx device.
@@ -794,7 +799,7 @@ void setPin() {
   Serial.readString();   // clear buffer
 }
 
-/*
+/**
  * setParity
  *  
  * Configure parity of HC-xx UART.
