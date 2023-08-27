@@ -39,13 +39,14 @@ Version 3.0
  <br>
   <b>HC05 connections: same as above, but also include (for AT mode selection)</b>
 
-                CMD <----+---R_220---> [pin 10]
-                         |
-                         |
-                       R_330
-                         |
-                         |
-                        Vss
+                STATE  -----------------> [State pin]
+                EN/KEY <----+---R_220---- [Mode pin]
+                            |
+                            |
+                          R_330
+                            |
+                            |
+                           Vss
  
  <br>
   <b>Pin connections:</b>
