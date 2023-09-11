@@ -14,23 +14,23 @@
  *    HC05 connections (for 5V boards - resistors not needed for 3V3):
  * 
  *                TXD -----------------> [Serial 1 RX]
- *                RXD <----+---R_220---- [Serial 1 TX]
+ *                RXD <----+---R_1K----- [Serial 1 TX]
  *                         |
  *                         |
- *                       R_330
+ *                       R_2K
  *                         |
- *                         |
+ *                        \|/
  *                        Vss
  * 
  *    [additional connections for AT mode selection]
  * 
  *                STATE  -----------------> [State pin]
- *                EN/KEY <----+---R_220---- [Mode pin]
+ *                EN/KEY <----+---R_1K----- [Mode pin]
  *                            |
  *                            |
- *                          R_330
+ *                          R_2K
  *                            |
- *                            |
+ *                           \|/
  *                           Vss
  * 
  *    Pin connections:
@@ -47,14 +47,21 @@
 #include <configureBT.h>
 
 #define MODE_PIN    10
+#define STATE_PIN    9
+
+HCBT hc05(Serial1, STATE_PIN, MODE_PIN);
 
 void setup() {
   // configure Serial Monitor UART (57600 8N1)
   Serial.begin(57600);
   delay(100);
+  if (!hc05.detectDevice()) {
+    Serial.println("Device not identified!");
+    Serial.println("Check connections and restart to scan again.");
+  }
 }
 
 void loop() {
   // Will display user menu to Serial and handle user selection
-  commandMenu();
+  hc05.commandMenu();
 }

@@ -14,12 +14,12 @@
 #define BAUD_LIST_CNT   8         // count of baud rate options
 #define VERS2_MIN_BAUD  2         // index for firmware 2.x/3.x minimum baud rate (4800)
 #define PARITY_LIST_CNT 3         // count of UART parity options
-#define FIRM_UNKNOWN   -1         // index for unknown firmware 
-#define FIRM_VERSION1   0         // index for firmware 1.x models
-#define FIRM_VERSION2   1         // index for firmware 2.x/3.x models
-#define MODEL_UNKNOWN  -1         // index for unknown HC-xx device model
-#define MODEL_HC06      0         // index for HC-06 device models
-#define MODEL_HC05      1         // index for HC-05 device models
+#define FIRM_UNKNOWN    0         // index for unknown firmware 
+#define FIRM_VERSION1   1         // index for firmware 1.x models
+#define FIRM_VERSION2   2         // index for firmware 2.x/3.x models
+#define MODEL_UNKNOWN   0         // index for unknown HC-xx device model
+#define MODEL_HC06      1         // index for HC-06 device models
+#define MODEL_HC05      2         // index for HC-05 device models
 
 #define ENDLINE_NLCR    "\r\n"    // for firmware version 2/3
 #define ENDLINE_NONE    ""        // for firmware version 1
@@ -52,11 +52,13 @@ const unsigned long baudRateList[] = {1200, 2400, 4800, 9600, 19200,
                                         38400, 57600, 115200};
 const uint8_t parityList[] = {SERIAL_8N1, SERIAL_8O1, SERIAL_8E1};
 const String parityType[] = {"None", "Odd", "Even"};
-const String parityCmd[] = {"AT+PN", "AT+PO", "AT+PE"};
+const String parityCmd[] =  {"AT+PN", "AT+PO", "AT+PE"};
 const String roleString[] = {"Slave", "Master", "Slave-Loop"};
-const String lineEnding[] = {"", "\r\n"};
-const String requestVal[] = {"", "?\r\n"};
-const String setValue[] =   {"", "="};
+const String lineEnding[] = {"", "", "\r\n"};
+const String requestVal[] = {"", "", "?\r\n"};
+const String setValue[] =   {"", "", "="};
+const String namePrefix[] = {"HCxx_", "HC06_", "HC05_"};
+const String responsePrefix[] = {"[HC0x]: ", "[HC06]: ", "[HC05]: "};
 const String atCommands[] = { "AT", 
                               "AT+VERSION", 
                               "AT+NAME", 
@@ -88,10 +90,12 @@ const int responseChars[] = {
                             40};    // other
 
 // response times for AT commands by firmware version
-const unsigned long responseMS[] = {FW1_RESPONSE, FW2_RESPONSE};
+const unsigned long responseMS[] = {FW1_RESPONSE, FW1_RESPONSE, FW2_RESPONSE};
 
 #define HC06_MENUSIZE     9
 
+// string constants for HC-06 comman menu
+//  index 0 not used because parseInt will return 0 for non-numeric entries
 const String hc06Menu[] = { "", 
                       ") Set HC06 Baud Rate",                             // 1
                       ") Set HC06 BT name",                               // 2

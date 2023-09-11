@@ -14,12 +14,12 @@
  *    HC06 connections (for 5V boards - resistors not needed for 3V3):
  * 
  *                TXD -----------------> [Serial 1 RX]
- *                RXD <----+---R_220---- [Serial 1 TX]
+ *                RXD <----+---R_1K----- [Serial 1 TX]
  *                         |
  *                         |
- *                       R_330
+ *                       R_2K
  *                         |
- *                         |
+ *                        \|/
  *                        Vss
  * 
  * 
@@ -36,15 +36,23 @@
 
 #include <configureBT.h>
 
+HCBT hc06;
 
 void setup() {
   // configure Serial Monitor UART (57600 8N1)
   Serial.begin(57600);
   delay(100);
-  disableCMDpin();
+  if (!hc06.detectDevice()) {
+    Serial.println("Device not identified!");
+    Serial.println("Check connections and restart to scan again.");
+  }
 }
 
 void loop() {
   // Will display user menu to Serial and handle user selection
-  commandMenu();
+  hc06.commandMenu();
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
