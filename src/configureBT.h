@@ -16,6 +16,8 @@
 #ifndef CONFIGUREBT_H
 #define CONFIGUREBT_H
 
+#include <Arduino.h>
+
 #define ROLE_UNKNOWN   -1         // index for unknown device role
 #define ROLE_SLAVE      0         // index for HC-05 devices in slave role
 #define ROLE_MASTER     1         // index for HC-05 devices in master role
@@ -73,6 +75,28 @@ private:
   void selectBaudRate();
 
   /**
+   * setBaudRate
+   *  
+   * Configure baud rate of HC-xx UART with firmware 1.x.
+   * Sends AT command to configure baud rate of HC-xx UART and displays response.
+   * If successful, updates Serial1 configuration to new UART settings.
+   * 
+   * @param newBaud       desired buad rate to configure HC-xx device UART
+   *    - 1   - 1200
+   *    - 2   - 2400
+   *    - 3   - 4800
+   *    - 4   - 9600
+   *    - 5   - 19200
+   *    - 6   - 38400
+   *    - 7   - 57600
+   *    - 8   - 115200
+   * @param verboseOut    if true, prints verbose output to Serial
+   * 
+   * @returns true if setting baud rate succeeds 
+   */
+  bool setBaudRate(int newBaud, bool verboseOut = false);
+
+  /**
    * changeName
    *  
    * Configure name of Bluetooth module.
@@ -80,6 +104,21 @@ private:
    * to user input string. 
    */
   void changeName();
+
+  /**
+   * changeRole
+   *  
+   * Send AT command to set BT role of HC-05 device.
+   * 
+   * @param role     role to set HC-05 device:
+   *    - ROLE_SLAVE    - acts as discoverable wireless UART device ready for transparent data exchange
+   *    - ROLE_MASTER   - scans for a remote bluetooth (slave) device, pairs, and setup connection
+   *    - ROLE_SLAVE_LOOP - data loop-back Rx-Tx, used mainly for testing
+   * @param verboseOut     if true, prints verbose output to Serial
+   * 
+   * @returns true if request succeeds.
+   */
+  bool changeRole(int role, bool verboseOut);
 
   /**
    * changePin
@@ -96,6 +135,27 @@ private:
    * Prints menu to Serial to select desired parity for UART.
    */
   void changeParity();
+
+  /**
+   * setParity
+   *  
+   * Configure parity of HC-xx UART with firmware 1.x.
+   * Sends AT command to configure parity of HC-xx UART and displays response.
+   * If successful, updates Serial1 configuration to new UART settings.
+   * 
+   * !!!!  NOTE  !!!! 
+   * Firmware version 1.x requires power-cycle of HC-06 after update to parity 
+   * settings before changes become active.
+   * 
+   * @param parity        desired parity to configure HC-xx device UART
+   *    - 0   - NOPARITY
+   *    - 1   - ODDPARITY
+   *    - 2   - EVENPARITY
+   * @param verboseOut    if true, prints verbose output to Serial
+   * 
+   * @returns true if setting parity succeeds 
+   */
+  bool setParity(int parity, bool verboseOut = false);
 
   /**
    * clearStreams
@@ -122,7 +182,31 @@ private:
    * @param firmware    firmware version identifier for HC-xx
    * @param command     index of AT command (as defined in HCxxCommands)
    */
-  void responseDelay(unsigned long characters, int firmware, HCxxCommands command);
+  void responseDelay(unsigned long characters, int firmware, int command);
+
+  /**
+   * testEcho
+   * 
+   * Send AT command to test configuration of UART.
+   * If OK response not received, firmVersion set to FIRM_UNKNOWN.
+   * 
+   * @param verboseOut     if true, prints verbose output to Serial
+   *  
+   * @returns true if responds with OK
+   */
+  bool testEcho(bool verboseOut = false);
+
+  /**
+   * indexBaud
+   * 
+   * @brief Return index of baud rate value within baudRateList array.
+   * 
+   * @param baud          baud rate value (e.g. 57600)
+   * @param verboseOut    if true, prints verbose output to Serial
+   * 
+   *  @returns index for baud rate or -1 if invalid baud rate
+  */
+  int indexBaud(unsigned long baud, bool verboseOut);
 
   /**
    * constructUARTstring
@@ -130,7 +214,7 @@ private:
    * @brief Constructs string for AT command to configure UART (for firmware vers 3.x)
    * 
    * @param baud    baud rate value (e.g. 57600)
-   * @param prty    parity setting
+   * @param parity  parity setting
    *                - 0 - None
    *                - 1 - Odd parity
    *                - 2 - Even parity
@@ -140,7 +224,7 @@ private:
    * 
    *  @returns String for AT command
    */
-  String constructUARTstring(int baud, int prty, int stops);
+  String constructUARTstring(unsigned long baud, int parity, int stops);
 
   /**
    * printMenu
@@ -160,7 +244,7 @@ private:
   // device UART baud rate setting
   int baudRate;
   // device UART parity setting
-  int parity;
+  int uartParity;
   // device UART stop bit configuration
   int stopBits;
   // device firmware version string
@@ -168,7 +252,7 @@ private:
   // Bluetooth broadcast name
   String btName;
   // UART interface for HC-0x device
-  Stream _uart;
+  Stream *_uart;
   // pin connected to STATE output of HC-05
   int _statePin;
   // pin connected to EN/KEY input of HC-05
@@ -176,15 +260,24 @@ private:
   
 public:
   /** 
-   * Creat instance of HCBT class.  
+   * Create instance of HCBT class.  
    * UART interface may be HardwareSerial or SoftwareSerial object,
    * Serial1 is default.
    * 
    * @param uart        serial interface for HC-0x (Serial1 is default)
-   * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
    * @param keyPin      pin conencted to EN/KEY input of HC-05 (not used for HC-06)
+   * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
    */
-  HCBT(Stream uart = Serial1, int statePin = 0, int keyPin = 0);
+  HCBT(Stream * uart = &Serial1, int keyPin = 0, int statePin = 0);
+
+  /** 
+   * Create instance of HCBT class.  
+   * Uses Serial1 for UART connection.
+   * 
+   * @param keyPin      pin conencted to EN/KEY input of HC-05 (not used for HC-06)
+   * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
+   */
+  HCBT(int keyPin, int statePin = 0);
 
   /**
    * commandMenu
@@ -205,18 +298,6 @@ public:
    * @returns true if UART configuration successfully identified
    */
   bool detectDevice(bool verboseOut = false);
-
-  /**
-   * testEcho
-   * 
-   * Send AT command to test configuration of UART.
-   * If OK response not received, firmVersion set to FIRM_UNKNOWN.
-   * 
-   * @param verboseOut     if true, prints verbose output to Serial
-   *  
-   * @returns true if responds with OK
-   */
-  bool testEcho(bool verboseOut = false);
 
   /**
    * getRole
@@ -247,7 +328,7 @@ public:
    * 
    * @returns true if request succeeds.
    */
-  bool setRole(unsigned int role, bool verboseOut = false);
+  bool setRole(int role, bool verboseOut = false);
 
   /**
    * getVersionString
@@ -262,26 +343,26 @@ public:
   String getVersionString(bool verboseOut = false);
 
   /**
-   * setBaudRate
+   * configUART
    *  
-   * Configure baud rate of HC-xx UART.
-   * Sends AT command to configure baud rate of HC-xx UART and displays response.
+   * Configure baud rate and parity of HC-xx UART.
+   * Sends AT command(s) to configure baud rate and parity of HC-xx UART.
    * If successful, updates Serial1 configuration to new UART settings.
    * 
-   * @param newBaud       desired buad rate to configure HC-xx device UART
-   *    - 1   - 1200
-   *    - 2   - 2400
-   *    - 3   - 4800
-   *    - 4   - 9600
-   *    - 5   - 19200
-   *    - 6   - 38400
-   *    - 7   - 57600
-   *    - 8   - 115200
-   * @param verboseOut    if true, prints verbose output to Serial
+   * !!!!  NOTE  !!!! 
+   * Firmware version 1.x requires power-cycle of HC-06 after update to parity 
+   * settings before changes become active.
    * 
-   * @returns true if setting baud rate succeeds 
+   * @param baud        desired buad rate to configure HC-xx device UART (e.g. 9600)
+   * @param parity      desired parity to configure HC-xx device UART
+   *    - 0   - NOPARITY
+   *    - 1   - ODDPARITY
+   *    - 2   - EVENPARITY
+   * @param verboseOut  if true, prints verbose output to Serial
+   * 
+   * @returns true if setting baud rate and parity succeeds 
    */
-  bool setBaudRate(int newBaud, bool verboseOut = false);
+  bool configUART(unsigned long baud, int parity, bool verboseOut = false);
 
   /**
    * setName
@@ -314,23 +395,6 @@ public:
    * @returns true if setting pin succeeds 
    */
   bool setPin(String newPin, bool verboseOut);
-
-  /**
-   * setParity
-   *  
-   * Configure parity of HC-xx UART.
-   * Sends AT command to configure parity of HC-xx UART and displays response.
-   * If successful, updates Serial1 configuration to new UART settings.
-   * 
-   * @param parity        desired parity to configure HC-xx device UART
-   *    - 0   - NOPARITY
-   *    - 1   - ODDPARITY
-   *    - 2   - EVENPARITY
-   * @param verboseOut    if true, prints verbose output to Serial
-   * 
-   * @returns true if setting parity succeeds 
-   */
-  bool setParity(int parity, bool verboseOut = false);
 
   /**
    * setCommandMode

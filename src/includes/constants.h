@@ -50,7 +50,7 @@
 // constant arrays for configuration and AT command construction
 const unsigned long baudRateList[] = {1200, 2400, 4800, 9600, 19200, 
                                         38400, 57600, 115200};
-const uint8_t parityList[] = {SERIAL_8N1, SERIAL_8O1, SERIAL_8E1};
+const uint32_t parityList[] = {SERIAL_8N1, SERIAL_8O1, SERIAL_8E1};
 const String parityType[] = {"None", "Odd", "Even"};
 const String parityCmd[] =  {"AT+PN", "AT+PO", "AT+PE"};
 const String roleString[] = {"Slave", "Master", "Slave-Loop"};
@@ -120,7 +120,7 @@ const String hc06Menu[] = { "",
 #define MODE_DATA       LOW         // HC-05 in data mode
 #define MODE_COMMAND    HIGH        // HC-05 in command mode
 
-const char errorCodes[] = {
+const String errorCodes[] = {
                 "0 Command Error/Invalid Command",
                 "1 Results in default value",
                 "2 PSKEY write error",

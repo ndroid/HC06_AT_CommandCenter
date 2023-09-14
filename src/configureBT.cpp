@@ -16,11 +16,20 @@
 //#define DEBUG           1
 
 #include "configureBT.h"
-#include "include/constants.h"
+#include "includes/constants.h"
 
 
-HCBT::HCBT(Stream uart, int statePin, int keyPin) {
+HCBT::HCBT(Stream *uart, int keyPin, int statePin) {
   _uart = uart;
+  _statePin = statePin;
+  _keyPin = keyPin;
+  initDevice();
+  if (statePin > 0) pinMode(statePin, INPUT);
+  if (keyPin > 0) pinMode(keyPin, OUTPUT);
+}
+
+HCBT::HCBT(int keyPin, int statePin) {
+  _uart = NULL;
   _statePin = statePin;
   _keyPin = keyPin;
   initDevice();
@@ -33,7 +42,7 @@ void HCBT::initDevice() {
   firmVersion = FIRM_UNKNOWN;
   deviceRole = ROLE_UNKNOWN;
   baudRate = VERS2_MIN_BAUD;
-  parity = NOPARITY;
+  uartParity = NOPARITY;
   stopBits = STOP1BIT;
   versionString = "";
   btName = "";
@@ -53,13 +62,13 @@ void HCBT::commandMenu() {
       selectBaudRate();
       break;
     case 2:
-      setName();
+      changeName();
       break;
     case 3:
-      setPin();
+      changePin();
       break;
     case 4:
-      setParity();
+      changeParity();
       break;
     case 5:
       setLocalBaud();
@@ -68,10 +77,10 @@ void HCBT::commandMenu() {
       setLocalParity();
       break;
     case 7:
-      getVersion();
+      getVersionString(true);
       break;
     case 8:
-      detectDevice();
+      detectDevice(true);
       break;
     default:
       Serial.println("Invalid entry");
@@ -97,7 +106,7 @@ void HCBT::setDataMode() {
   }
 }
 
-void HCBT::responseDelay(unsigned long characters, int firmware, HCxxCommands command) {
+void HCBT::responseDelay(unsigned long characters, int firmware, int command) {
   if ((baudRate < 0) || (baudRate >= BAUD_LIST_CNT)) return;
   unsigned long writeMS = (characters + responseChars[command]) * BITS_PER_CHAR * 1000 
                               / baudRateList[baudRate];
@@ -141,11 +150,11 @@ void HCBT::printMenu() {
   Serial.print("\tBaud rate: ");
   Serial.println(baudRateList[baudRate]);
   Serial.print("\tParity: ");
-  Serial.println(parityType[parity]);
+  Serial.println(parityType[uartParity]);
   Serial.println();
   Serial.println("Select option:");
-  for (int i = 1; i < HC06_MENUSIZE, i++) {
-    Serial.println("\t(" + i + hc06Menu[i]);
+  for (int i = 1; i < HC06_MENUSIZE; i++) {
+    Serial.println(String("\t(") + i + hc06Menu[i]);
   }
   Serial.println();
 }
@@ -163,7 +172,7 @@ bool HCBT::detectDevice(bool verboseOut) {
   // Scan through possible UART configurations for each firmware version. 
   //  Use AT command to test for OK response.
   for (int firmware = FIRM_VERSION2; firmware > FIRM_UNKNOWN; firmware--) {
-    for (parity = NOPARITY; parity < PARITY_LIST_CNT; parity++) {
+    for (uartParity = NOPARITY; uartParity < PARITY_LIST_CNT; uartParity++) {
       // firmware version 2.x/3.x does not support baud rate below 4800
       if (firmware == FIRM_VERSION2) {
         baudRate = VERS2_MIN_BAUD;
@@ -187,7 +196,7 @@ bool HCBT::detectDevice(bool verboseOut) {
           Serial.print(" .");
         }
         // set to new baud rate and parity setting and test connection
-        Serial1.begin(baudRateList[baudRate], parityList[parity]);
+        Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
         delay(CONFIG_DELAY);
         clearInputStream(firmware);
         Serial1.print(command);
@@ -212,8 +221,8 @@ bool HCBT::detectDevice(bool verboseOut) {
               // use getRole and setRole response to identify device model
               switch (fetchRole(verboseOut)) {
                 case ROLE_SLAVE:
-                    // hc-05 fw vers 2/3 will fail when attempting to set role
-                    if (setRole(ROLE_SLAVE, verboseOut)) {
+                    // hc-06 fw vers 2/3 will fail when attempting to set role
+                    if (changeRole(ROLE_SLAVE, verboseOut)) {
                       deviceModel = MODEL_HC05;
                     } else {
                       deviceModel = MODEL_HC06;
@@ -227,6 +236,8 @@ bool HCBT::detectDevice(bool verboseOut) {
                     deviceModel = MODEL_HC06;
                     break;
               }
+            } else {
+              deviceModel = MODEL_HC06;
             }
             break;
           }
@@ -256,7 +267,7 @@ bool HCBT::detectDevice(bool verboseOut) {
       Serial.print("\tBaud rate: "); 
       Serial.println(baudRateList[baudRate]);
       Serial.print("\tParity: "); 
-      Serial.println(parityType[parity]);
+      Serial.println(parityType[uartParity]);
     } else {
       Serial.println("\nDevice not identified. Check connections and try again.");
     }
@@ -294,7 +305,9 @@ bool HCBT::testEcho(bool verboseOut) {
       Serial.println("OK response not received.");
     }
     initDevice();
+    return false;
   }
+  return true;
 }
 
 int HCBT::fetchRole(bool verboseOut) {
@@ -356,20 +369,10 @@ int HCBT::getRole(bool verboseOut) {
   return deviceRole;
 }
 
-bool HCBT::setRole(unsigned int role, bool verboseOut) {
+bool HCBT::changeRole(int role, bool verboseOut) {
   String comBuffer = "";
   String command;
 
-  if (VERSION_UNKNOWN)  
-    return false;
-  if ((role < ROLE_SLAVE) || (role > ROLE_SLAVE_LOOP))
-    return false;
-  if (deviceModel != MODEL_HC05) {
-    if (role == ROLE_SLAVE)
-      return true;
-    else 
-      return false;
-  }
   command = String(ROLE_CMD) + role + lineEnding[FIRM_VERSION2];
   if (verboseOut) {
     Serial.print("Set role of HC05 to ");
@@ -409,6 +412,23 @@ bool HCBT::setRole(unsigned int role, bool verboseOut) {
   return true;
 }
 
+bool HCBT::setRole(int role, bool verboseOut) {
+  if (VERSION_UNKNOWN)  
+    return false;
+  if ((role < ROLE_SLAVE) || (role > ROLE_SLAVE_LOOP))
+    return false;
+  if (deviceModel != MODEL_HC05) {
+    if (role == ROLE_SLAVE)
+      return true;
+    else 
+      return false;
+  }
+  if (deviceRole == role) {
+    return true;
+  }
+  return changeRole(role, verboseOut);
+}
+
 void HCBT::setLocalBaud() {
   String comBuffer = "";
   String command;
@@ -438,7 +458,7 @@ void HCBT::setLocalBaud() {
     Serial1.end();
     delay(CONFIG_DELAY);
     baudRate = tempBaud;
-    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
     delay(CONFIG_DELAY);
     Serial.print("Set local baud rate to ");
     Serial.println(baudRateList[baudRate]);
@@ -456,7 +476,7 @@ void HCBT::setLocalParity() {
   clearStreams();
   Serial.println("It is advised that parity is left at same setting as found hardware.");
   Serial.print("Current parity: ");
-  Serial.println(parityType[parity]);
+  Serial.println(parityType[uartParity]);
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
@@ -472,9 +492,9 @@ void HCBT::setLocalParity() {
   } else if (tempParity < PARITY_LIST_CNT) {
     Serial1.end();
     delay(CONFIG_DELAY);
-    parity = tempParity;
-    Serial.println("Setting to " + parityType[parity] + " Parity check");
-    Serial1.begin(baudRateList[baudRate], parityList[parity]);
+    uartParity = tempParity;
+    Serial.println("Setting to " + parityType[uartParity] + " Parity check");
+    Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
     delay(CONFIG_DELAY);
 //    Serial.println("Testing new parity configuration . . .");
 //    testEcho();
@@ -483,9 +503,13 @@ void HCBT::setLocalParity() {
   }
 }
 
-String HCBT::getVersion(bool verboseOut) {
+String HCBT::getVersionString(bool verboseOut) {
   if (versionString.equals(""))
     return fetchVersion(verboseOut);
+  if (verboseOut) {
+    Serial.print(responsePrefix[deviceModel]);
+    Serial.println(versionString);
+  }
   return versionString;
 }
 
@@ -507,6 +531,12 @@ String HCBT::fetchVersion(bool verboseOut) {
       Serial.println(comBuffer);
       Serial.println();
     }
+    int nlChar = comBuffer.indexOf('\n');
+    int retChar = comBuffer.indexOf('\r');
+    int minChar = (nlChar < retChar ? nlChar : retChar);
+    if (minChar > 0) {
+      comBuffer.remove(minChar);
+    }
     versionString = comBuffer;
 #ifdef DEBUG
     for (unsigned int i = 0; i < comBuffer.length(); i++)
@@ -519,11 +549,12 @@ String HCBT::fetchVersion(bool verboseOut) {
   } else {
     testEcho(verboseOut);
   }
+  return versionString;
 }
 
-String HCBT::constructUARTstring(int baud, int prty, int stops) {
-  return String(UART_CMD) + baudRateList[baud] + "," + stops + "," 
-            + (prty) + lineEnding[FIRM_VERSION2];
+String HCBT::constructUARTstring(unsigned long baud, int parity, int stops) {
+  return String(UART_CMD) + baud + "," + stops + "," 
+            + (parity) + lineEnding[FIRM_VERSION2];
 }
 
 void HCBT::selectBaudRate() {
@@ -546,11 +577,11 @@ void HCBT::selectBaudRate() {
 
   while (Serial.available() < 1);
   command = Serial.readString();
-  int tempBaud = command.toInt();
-  if (tempBaud <= 0) {
+  int tempBaud = command.toInt() - 1;
+  if (tempBaud < 0) {
     Serial.println("Canceled");
-  } else if (tempBaud <= BAUD_LIST_CNT) {
-    setBaudRate(tempBaud, true);
+  } else if (tempBaud < BAUD_LIST_CNT) {
+    configUART(baudRateList[tempBaud], uartParity, true);
   } else {
     Serial.println("Invalid entry");
   }
@@ -581,7 +612,7 @@ bool HCBT::setBaudRate(int newBaud, bool verboseOut) {
       }
       return false;
     }
-    command = constructUARTstring(newBaud, parity, stopBits);
+    command = constructUARTstring(newBaud, uartParity, stopBits);
   } else {
     command = String(BAUD_CMD) + (newBaud+1) + lineEnding[firmVersion];
   }
@@ -621,7 +652,7 @@ bool HCBT::setBaudRate(int newBaud, bool verboseOut) {
   Serial1.end();
   baudRate = newBaud;
   delay(CONFIG_DELAY);
-  Serial1.begin(baudRateList[baudRate], parityList[parity]);
+  Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
   delay(CONFIG_DELAY);
   if (verboseOut) {
     Serial.println("Testing new baud rate configuration . . .");
@@ -638,6 +669,7 @@ void HCBT::changeName() {
   if ((firmVersion == FIRM_VERSION1) && (baudRate > 4)) {
     maxChars = 9;
   }
+  clearStreams();
   Serial.print("Enter BT name (max "); Serial.print(maxChars);
   Serial.println(" characters - prepends " + namePrefix[deviceModel] + "): ");
 
@@ -713,6 +745,7 @@ bool HCBT::setName(String newName, bool verboseOut) {
 void HCBT::changePin() {
   String pin;
 
+  clearStreams();
   if (firmVersion == FIRM_VERSION2) {
     Serial.println("Enter new BT passkey (14 characters max): ");
   } else {
@@ -817,8 +850,9 @@ bool HCBT::setPin(String newPin, bool verboseOut) {
 void HCBT::changeParity() {
   String command;
 
+  clearStreams();
   Serial.print("Current parity: ");
-  Serial.println(parityType[parity]);
+  Serial.println(parityType[uartParity]);
   Serial.println("Select parity option:");
   Serial.println("\t(0) Cancel");
   Serial.println("\t(1).......No parity");
@@ -832,24 +866,23 @@ void HCBT::changeParity() {
   if (tempParity < 0) {
     Serial.println("Canceled");
   } else if (tempParity < PARITY_LIST_CNT) {
+    configUART(baudRateList[baudRate], tempParity, true);
   } else {
     Serial.println("Invalid entry");
   }
-
 }
 
 bool HCBT::setParity(int parity, bool verboseOut) {
   String comBuffer = "";
   String command;
 
-  // construct AT command for UART configuration based on firmware version
-  if (firmVersion == FIRM_VERSION2) {
-    command = constructUARTstring(baudRate, tempParity, stopBits);
-  } else {
-    command = parityCmd[tempParity];
+  command = parityCmd[parity];
+  if (verboseOut) {
+    Serial.println("Setting to " + parityType[parity] + " Parity check");
   }
-  Serial.println("Setting to " + parityType[tempParity] + " Parity check");
+#ifdef DEBUG
   Serial.println("\tsending command: " + command);
+#endif
   clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
@@ -857,9 +890,11 @@ bool HCBT::setParity(int parity, bool verboseOut) {
 
   if (Serial1.available() > 0) {
     comBuffer = Serial1.readString();
-    Serial.print(responsePrefix[deviceModel]);
-    Serial.println(comBuffer);
-    Serial.println();
+    if (verboseOut) {
+      Serial.print(responsePrefix[deviceModel]);
+      Serial.println(comBuffer);
+      Serial.println();
+    }
 #ifdef DEBUG
     for (unsigned int i = 0; i < comBuffer.length(); i++) {
       Serial.print("\t");
@@ -869,24 +904,131 @@ bool HCBT::setParity(int parity, bool verboseOut) {
 #endif
   }
   if (!(comBuffer.startsWith(STATUS_OK))) {
-    Serial.println("\nRequest failed.");
-    delay(MENU_DELAY);
-    return;
+    if (verboseOut) {
+      Serial.println("\nRequest failed.");
+      delay(MENU_DELAY);
+    }
+    return false;
   }
   // if OK response received, change Serial1 UART settings to match HC-xx
   Serial1.end();
-  parity = tempParity;
+  uartParity = parity;
   delay(CONFIG_DELAY);
   // firmware version 1.x requires power-cycle of HC-06 to update parity settings
-  if (firmVersion == FIRM_VERSION1) {
+  if (verboseOut) {
     Serial.println("To complete change of parity, remove then reconnect power to HC-06.");
     Serial.println("Enter any character when complete (LED should be blinking).");
     while (Serial.available() < 1);
     Serial.readString();   // clear buffer
   }
-  Serial1.begin(baudRateList[baudRate], parityList[parity]);
+  Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
   delay(CONFIG_DELAY);
-  Serial.println("Testing new parity configuration . . .");
-  testEcho(verboseOut);
-  
+  if (verboseOut) {
+    Serial.println("Testing new parity configuration . . .");
+    return testEcho(verboseOut);
+  }
+  return true;
+}
+
+int HCBT::indexBaud(unsigned long baud, bool verboseOut) {
+  // firmware version 3.x does not support baud rate below 4800
+  if ((firmVersion == FIRM_VERSION2) && (baud < baudRateList[VERS2_MIN_BAUD])) {
+    if (verboseOut) {
+      Serial.println("\nBaud rates below 4800 not supported by this firmware.");
+      delay(MENU_DELAY);
+    }
+    return -1;
+  }
+  for (int i = 0; i < BAUD_LIST_CNT; i++) {
+    if (baud == baudRateList[i])
+      return i;
+  }
+  if (verboseOut) {
+    Serial.println("\nBaud rate not supported.");
+    Serial.println("See documentation for valid values.");
+    delay(MENU_DELAY);
+  }
+  return -1;
+}
+
+bool HCBT::configUART(unsigned long baud, int parity, bool verboseOut) {
+  String comBuffer = "";
+  String command;
+  int baudIndex;
+
+  if (VERSION_UNKNOWN) 
+    return false;
+  if ((parity < NOPARITY) || (parity > EVENPARITY)){
+    if (verboseOut) {
+      Serial.println("\nInvalid parity selection.");
+      Serial.println("See docmentation for valid values.");
+      delay(MENU_DELAY);
+    }
+    return false;
+  }
+  // validate baud rate selection
+  baudIndex = indexBaud(baud, verboseOut);
+  if (baudIndex < 0) {
+    return false;
+  }
+  // construct AT command for UART configuration based on firmware version
+  if (firmVersion == FIRM_VERSION1) {
+    if (baudIndex != baudRate) {
+      if (!setBaudRate((baudIndex + 1), verboseOut)) 
+        return false;
+    }
+    if (parity != uartParity) {
+      if (!setParity(parity, verboseOut)) 
+        return false;
+    }
+    return true;
+  } 
+  // FIRM_VERSION2
+  command = constructUARTstring(baud, parity, stopBits);
+  if (verboseOut) {
+    Serial.print("Setting HC0x and local baud rate to ");
+    Serial.println(baud);
+    Serial.println("Setting to " + parityType[parity] + " Parity check");
+#ifdef DEBUG
+    Serial.println("\tsending command: " + command);
+#endif
+    Serial.println();
+  }
+  clearInputStream(firmVersion);
+  Serial1.print(command);
+  Serial1.flush();
+  responseDelay(command.length(), firmVersion, BAUD_SET);
+  if (Serial1.available() > 0) {
+    comBuffer = Serial1.readString();
+    if (verboseOut) {
+      Serial.print(responsePrefix[deviceModel]);
+      Serial.println(comBuffer);
+      Serial.println();
+    }
+#ifdef DEBUG
+    for (unsigned int i = 0; i < comBuffer.length(); i++) {
+      Serial.print("\t");
+      Serial.print(comBuffer.charAt(i), HEX);
+    }
+    Serial.println();
+#endif
+  }
+  if (!(comBuffer.startsWith(STATUS_OK))) {
+    if (verboseOut) {
+      Serial.println("\nRequest failed.");
+      delay(MENU_DELAY);
+    }
+    return false;
+  }
+  // if OK response received, change Serial1 UART settings to match HC-xx
+  Serial1.end();
+  baudRate = baudIndex;
+  uartParity = parity;
+  delay(CONFIG_DELAY);
+  Serial1.begin(baudRateList[baudRate], parityList[uartParity]);
+  delay(CONFIG_DELAY);
+  if (verboseOut) {
+    Serial.println("Testing new UART configuration . . .");
+  }
+  return testEcho(verboseOut);
 }

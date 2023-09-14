@@ -49,7 +49,7 @@
 #define MODE_PIN    10
 #define STATE_PIN    9
 
-HCBT hc05(Serial1, STATE_PIN, MODE_PIN);
+HCBT hc05(&Serial1, MODE_PIN, STATE_PIN);
 
 void setup() {
   // configure Serial Monitor UART (57600 8N1)
@@ -64,4 +64,8 @@ void setup() {
 void loop() {
   // Will display user menu to Serial and handle user selection
   hc05.commandMenu();
+  Serial.println("\nEnter any character to return to menu.");
+  while (Serial.available() < 1);
+  delay(100);
+  Serial.readString();   // clear buffer
 }
