@@ -259,6 +259,8 @@ private:
   int _keyPin;
   // current mode of HC-05, N/A for HC-06
   int _mode;
+  // true if serial UART previously begun
+  bool uartBegun;
   
 public:
   /** 

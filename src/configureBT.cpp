@@ -24,6 +24,7 @@ HCBT::HCBT(Stream *uart, int keyPin, int statePin) {
   _statePin = statePin;
   _keyPin = keyPin;
   _mode = MODE_DATA;
+  uartBegun = false;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
   if (keyPin > 0) pinMode(keyPin, OUTPUT);
@@ -34,6 +35,7 @@ HCBT::HCBT(int keyPin, int statePin) {
   _statePin = statePin;
   _keyPin = keyPin;
   _mode = MODE_DATA;
+  uartBegun = false;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
   if (keyPin > 0) pinMode(keyPin, OUTPUT);
@@ -175,6 +177,13 @@ bool HCBT::detectDevice(bool verboseOut) {
   String comBuffer;
 
   initDevice();
+  if (!uartBegun) {
+    // protect against board packages which do not check for Serial begun prior
+    //  to executing end()
+    Serial1.begin(9600);
+    delay(SHORT_DELAY);
+    uartBegun = true;
+  }
   Serial1.end();
   delay(CONFIG_DELAY);
   if (verboseOut) {
