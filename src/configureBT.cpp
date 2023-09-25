@@ -23,6 +23,7 @@ HCBT::HCBT(Stream *uart, int keyPin, int statePin) {
   _uart = uart;
   _statePin = statePin;
   _keyPin = keyPin;
+  _mode = MODE_DATA;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
   if (keyPin > 0) pinMode(keyPin, OUTPUT);
@@ -32,6 +33,7 @@ HCBT::HCBT(int keyPin, int statePin) {
   _uart = NULL;
   _statePin = statePin;
   _keyPin = keyPin;
+  _mode = MODE_DATA;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
   if (keyPin > 0) pinMode(keyPin, OUTPUT);
@@ -92,17 +94,25 @@ void HCBT::commandMenu() {
 }
 
 void HCBT::setCommandMode() {
-  if (_keyPin > 0) {
-    pinMode(_keyPin, OUTPUT);
-    digitalWrite(_keyPin, MODE_COMMAND);
+  if (_mode != MODE_COMMAND) {
+    if (_keyPin > 0) {
+      pinMode(_keyPin, OUTPUT);
+      digitalWrite(_keyPin, MODE_COMMAND);
+      delay(SHORT_DELAY);
+    }
+    _mode = MODE_COMMAND;
   }
 }
 
 void HCBT::setDataMode() {
-  if (_keyPin > 0) {
-    digitalWrite(_keyPin, MODE_DATA);
-    // low or floating signal disables command mode
-    pinMode(_keyPin, INPUT);
+  if (_mode != MODE_DATA) {
+    if (_keyPin > 0) {
+      digitalWrite(_keyPin, MODE_DATA);
+      // low or floating signal disables command mode
+      pinMode(_keyPin, INPUT);
+      delay(SHORT_DELAY);
+    }
+    _mode = MODE_DATA;
   }
 }
 
@@ -122,8 +132,9 @@ void HCBT::clearStreams() {
 }
 
 void HCBT::clearInputStream(int firmware) {
+  setCommandMode();
   if (firmware == FIRM_VERSION2) {
-    // ensure HC06 is not waiting for termination of partially complete command
+    // ensure HC0x is not waiting for termination of partially complete command
     Serial1.print(lineEnding[FIRM_VERSION2]);
     Serial1.flush();
     delay(FW2_RESPONSE);
@@ -169,6 +180,7 @@ bool HCBT::detectDevice(bool verboseOut) {
   if (verboseOut) {
     Serial.print("\nSearching for firmware and version of HC0x device");
   }
+  setCommandMode();
   // Scan through possible UART configurations for each firmware version. 
   //  Use AT command to test for OK response.
   for (int firmware = FIRM_VERSION2; firmware > FIRM_UNKNOWN; firmware--) {
@@ -280,6 +292,7 @@ bool HCBT::testEcho(bool verboseOut) {
   String comBuffer = "";
   String command;
 
+  setCommandMode();
   command = atCommands[ECHO] + lineEnding[firmVersion];
   clearInputStream(firmVersion);
   Serial1.print(command);
@@ -317,6 +330,7 @@ int HCBT::fetchRole(bool verboseOut) {
 
   if (VERSION_UNKNOWN)  
     return ROLE_UNKNOWN;
+  setCommandMode();
   command = String(ROLE_REQ);
   clearInputStream(firmVersion);
   Serial1.print(command);
@@ -378,6 +392,7 @@ bool HCBT::changeRole(int role, bool verboseOut) {
     Serial.print("Set role of HC05 to ");
     Serial.println(roleString[role]);
   }
+  setCommandMode();
   clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
@@ -519,6 +534,7 @@ String HCBT::fetchVersion(bool verboseOut) {
 
   if (VERSION_UNKNOWN) 
     return "";
+  setCommandMode();
   command = atCommands[HCVERSION] + requestVal[firmVersion];
   clearInputStream(firmVersion);
   Serial1.print(command);
@@ -622,6 +638,7 @@ bool HCBT::setBaudRate(int newBaud, bool verboseOut) {
     Serial.println("\tsending command: " + command);
     Serial.println();
   }
+  setCommandMode();
   clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();
@@ -704,6 +721,7 @@ bool HCBT::setName(String newName, bool verboseOut) {
       Serial.println(btName);
     }
     command = atCommands[BTNAME] + setValue[firmVersion] + btName + lineEnding[firmVersion];
+    setCommandMode();
 #ifdef DEBUG
     Serial.println("\tsending command: " + command);
 #endif
@@ -822,6 +840,7 @@ bool HCBT::setPin(String newPin, bool verboseOut) {
     command = atCommands[BTPSWD] + setValue[FIRM_VERSION2] + newPin + lineEnding[FIRM_VERSION2];
   }
   
+  setCommandMode();
 #ifdef DEBUG
   Serial.println("\tsending command: " + command);
 #endif
@@ -880,6 +899,7 @@ bool HCBT::setParity(int parity, bool verboseOut) {
   if (verboseOut) {
     Serial.println("Setting to " + parityType[parity] + " Parity check");
   }
+  setCommandMode();
 #ifdef DEBUG
   Serial.println("\tsending command: " + command);
 #endif
@@ -994,6 +1014,7 @@ bool HCBT::configUART(unsigned long baud, int parity, bool verboseOut) {
 #endif
     Serial.println();
   }
+  setCommandMode();
   clearInputStream(firmVersion);
   Serial1.print(command);
   Serial1.flush();

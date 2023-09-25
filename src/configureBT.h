@@ -257,6 +257,8 @@ private:
   int _statePin;
   // pin connected to EN/KEY input of HC-05
   int _keyPin;
+  // current mode of HC-05, N/A for HC-06
+  int _mode;
   
 public:
   /** 
