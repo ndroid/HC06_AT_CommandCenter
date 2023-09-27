@@ -9,7 +9,7 @@
  * 
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 9-Sep, 2023
+ *    Modified: 27-Sep, 2023
  *    Revision: 2.0
  */
 // uncomment following line to include debugging output to serial
@@ -19,6 +19,8 @@
 #include "includes/constants.h"
 
 
+// TODO add support for specifying UART for AT communication
+/*
 HCBT::HCBT(Stream *uart, int keyPin, int statePin) {
   _uart = uart;
   _statePin = statePin;
@@ -27,8 +29,9 @@ HCBT::HCBT(Stream *uart, int keyPin, int statePin) {
   uartBegun = false;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
-  if (keyPin > 0) pinMode(keyPin, OUTPUT);
+  if (keyPin > 0) pinMode(keyPin, INPUT);
 }
+*/
 
 HCBT::HCBT(int keyPin, int statePin) {
   _uart = NULL;
@@ -38,7 +41,7 @@ HCBT::HCBT(int keyPin, int statePin) {
   uartBegun = false;
   initDevice();
   if (statePin > 0) pinMode(statePin, INPUT);
-  if (keyPin > 0) pinMode(keyPin, OUTPUT);
+  if (keyPin > 0) pinMode(keyPin, INPUT);
 }
 
 void HCBT::initDevice() {
@@ -54,8 +57,18 @@ void HCBT::initDevice() {
 
 void HCBT::commandMenu() {
   String command;
+
+  while (VERSION_UNKNOWN) {
+    if (detectDevice(true))   break;
+    clearSerial();    // clear buffer
+    Serial.println();
+    Serial.println("Device version/configuration unknown.");
+    Serial.println("Check connections and enter any character to scan again.");
+    while (Serial.available() < 1);
+    delay(SHORT_DELAY);
+  }
   // clear any existing messages in buffer
-  clearStreams();
+  clearSerial();
 
   printMenu();
   // check for user selection of menu option
@@ -126,11 +139,15 @@ void HCBT::responseDelay(unsigned long characters, int firmware, int command) {
 }
 
 void HCBT::clearStreams() {
+  clearSerial();
+  clearInputStream(firmVersion);
+}
+
+void HCBT::clearSerial() {
   while (Serial.available() > 0) {
     // wait until input stream is clear
     Serial.read();
   }
-  clearInputStream(firmVersion);
 }
 
 void HCBT::clearInputStream(int firmware) {
@@ -145,18 +162,10 @@ void HCBT::clearInputStream(int firmware) {
     // wait until input stream is clear
     Serial1.read();
   }
+  setDataMode();
 }
 
 void HCBT::printMenu() {
-  while (VERSION_UNKNOWN) {
-    if (detectDevice())   break;
-    Serial.println();
-    Serial.println("Device version/configuration unknown.");
-    Serial.println("Check connections and enter any character to scan again.");
-    while (Serial.available() < 1);
-    delay(SHORT_DELAY);
-    Serial.readString();   // clear buffer
-  }
   Serial.println("\n");
   Serial.write(12);   // Form feed (not supported in Serial Monitor)
   Serial.println(responsePrefix[deviceModel] + versionString);
@@ -293,7 +302,7 @@ bool HCBT::detectDevice(bool verboseOut) {
       Serial.println("\nDevice not identified. Check connections and try again.");
     }
   }
-  
+  setDataMode();
   return (VERSION_KNOWN);
 }
 
@@ -326,9 +335,11 @@ bool HCBT::testEcho(bool verboseOut) {
     if (verboseOut) {
       Serial.println("OK response not received.");
     }
+    setDataMode();
     initDevice();
     return false;
   }
+  setDataMode();
   return true;
 }
 
@@ -382,6 +393,7 @@ int HCBT::fetchRole(bool verboseOut) {
       Serial.println("Device role is: " + roleString[deviceRole]);
     }
   }
+  setDataMode();
   return deviceRole;
 }
 
@@ -427,12 +439,14 @@ bool HCBT::changeRole(int role, bool verboseOut) {
       Serial.println("Device role not set.");
     }
     //deviceRole = ROLE_UNKNOWN;  // don't modify role since it may be HC06
+    setDataMode();
     return false;
   }
   deviceRole = role;
   if (verboseOut) {
     Serial.println("Device role set to: " + roleString[deviceRole]);
   }
+  setDataMode();
   return true;
 }
 
@@ -479,6 +493,13 @@ void HCBT::setLocalBaud() {
   if (tempBaud < 0) {
     Serial.println("Canceled");
   } else if (tempBaud < BAUD_LIST_CNT) {
+    if (!uartBegun) {
+      // protect against board packages which do not check for Serial begun prior
+      //  to executing end()
+      Serial1.begin(9600);
+      delay(SHORT_DELAY);
+      uartBegun = true;
+    }
     Serial1.end();
     delay(CONFIG_DELAY);
     baudRate = tempBaud;
@@ -514,6 +535,13 @@ void HCBT::setLocalParity() {
   if (tempParity < 0) {
     Serial.println("Canceled");
   } else if (tempParity < PARITY_LIST_CNT) {
+    if (!uartBegun) {
+      // protect against board packages which do not check for Serial begun prior
+      //  to executing end()
+      Serial1.begin(9600);
+      delay(SHORT_DELAY);
+      uartBegun = true;
+    }
     Serial1.end();
     delay(CONFIG_DELAY);
     uartParity = tempParity;
@@ -574,6 +602,7 @@ String HCBT::fetchVersion(bool verboseOut) {
   } else {
     testEcho(verboseOut);
   }
+  setDataMode();
   return versionString;
 }
 
@@ -672,6 +701,7 @@ bool HCBT::setBaudRate(int newBaud, bool verboseOut) {
       Serial.println("\nRequest failed.");
       delay(MENU_DELAY);
     }
+    setDataMode();
     return false;
   }
   // if OK response received, change Serial1 UART settings to match HC-xx
@@ -758,6 +788,7 @@ bool HCBT::setName(String newName, bool verboseOut) {
         Serial.println("Names above 14 characters fail for some FW Version 1.x baud settings.");
         Serial.println("Try with alternate string less than 10 characters.");
       }
+      setDataMode();
       return false;
     }
   } else {
@@ -766,6 +797,7 @@ bool HCBT::setName(String newName, bool verboseOut) {
     }
     return false;
   }
+  setDataMode();
   return true;
 }
 
@@ -870,8 +902,10 @@ bool HCBT::setPin(String newPin, bool verboseOut) {
       Serial.println("Setting pin failed!");
       delay(MENU_DELAY);
     }
+    setDataMode();
     return false;
   }
+  setDataMode();
   return true;
 }
 
@@ -904,6 +938,8 @@ bool HCBT::setParity(int parity, bool verboseOut) {
   String comBuffer = "";
   String command;
 
+  if (VERSION_UNKNOWN) 
+    return false;
   command = parityCmd[parity];
   if (verboseOut) {
     Serial.println("Setting to " + parityType[parity] + " Parity check");
@@ -937,6 +973,7 @@ bool HCBT::setParity(int parity, bool verboseOut) {
       Serial.println("\nRequest failed.");
       delay(MENU_DELAY);
     }
+    setDataMode();
     return false;
   }
   // if OK response received, change Serial1 UART settings to match HC-xx
@@ -956,6 +993,7 @@ bool HCBT::setParity(int parity, bool verboseOut) {
     Serial.println("Testing new parity configuration . . .");
     return testEcho(verboseOut);
   }
+  setDataMode();
   return true;
 }
 
@@ -1048,6 +1086,7 @@ bool HCBT::configUART(unsigned long baud, int parity, bool verboseOut) {
       Serial.println("\nRequest failed.");
       delay(MENU_DELAY);
     }
+    setDataMode();
     return false;
   }
   // if OK response received, change Serial1 UART settings to match HC-xx

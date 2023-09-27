@@ -22,6 +22,9 @@
  *                        \|/
  *                        Vss
  * 
+ *  Command mode (AT mode): 
+ *   - Device LED should be blinking fast (> 2 Hz) when in command (AT) mode.
+ *   - When LED is solid, device is paired and connected.
  * 
  *    Pin connections:
  *                    board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
@@ -41,7 +44,12 @@ HCBT hc06;
 void setup() {
   // configure Serial Monitor UART (57600 8N1)
   Serial.begin(57600);
+  delay(1000);
+  Serial.println("Will scan to automatically configure UART for connected device.");
+  Serial.println("Enter any character when ready to scan.");
+  while (Serial.available() < 1);
   delay(100);
+  Serial.readString();   // clear buffer
   if (!hc06.detectDevice()) {
     Serial.println("Device not identified!");
     Serial.println("Check connections and restart to scan again.");

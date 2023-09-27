@@ -49,6 +49,20 @@ Version 2.0
                            Vss
  
  <br>
+ <dl>
+   <dt> <b>Command mode</b> (AT mode): </dt>
+   <dd> Device LED should be blinking fast (> 2 Hz) when in command (AT) mode.<br>
+   <dd> When LED is solid, device is paired and connected.<br>
+   <dd> If LED is blinking slowly (HC-05), device is in fixed AT mode. In this 
+    mode, UART baud rate is fixed at 38400 with no parity. This occurs 
+    when EN/KEY pin is tied HIGH while power is connected. For this reason, 
+    [Mode pin] will be set to INPUT mode when not communicating AT commands. If
+    LED is blinking slowly, try disconnecting and reconnecting power to HC-05
+    device.</dd>
+ </dl>
+
+
+ <br>
   <b>Pin connections:</b>
 
                     board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
@@ -63,25 +77,25 @@ Version 2.0
       Created on: 18-Oct, 2021
       Author: miller4@rose-hulman.edu
     
-        Modified: 30-Jan, 2022
-        Revision: 0.2
-                * provides user menu for selecting desired configuration
-        Modified: 7-Feb, 2022
-        Revision: 0.3
-                * updated end-line characters to support devices with newer
-                    firmware (3.0+) HC-05 firmware?
-        Modified: 24-Apr, 2022
-        Revision: 0.4
-                * added option to auto-detect firmware version and UART 
-                    configuration
-        Modified: 22-Apr, 2023
-        Revision: 1.0
-                * added support and auto-detection for firmware versions
-                    1.x and 3.x
         Modified: 25-Aug, 2023
         Revision: 2.0
                 * added support and auto-detection for HC-05
                 * defined classes for interfacing HC-0x devices
+        Modified: 22-Apr, 2023
+        Revision: 1.0
+                * added support and auto-detection for firmware versions
+                    1.x and 3.x
+        Modified: 24-Apr, 2022
+        Revision: 0.4
+                * added option to auto-detect firmware version and UART 
+                    configuration
+        Modified: 7-Feb, 2022
+        Revision: 0.3
+                * updated end-line characters to support devices with newer
+                    firmware (3.0+) HC-05 firmware?
+        Modified: 30-Jan, 2022
+        Revision: 0.2
+                * provides user menu for selecting desired configuration
 
 ### License
 Up to version 0.4.0, the license is GPLv3.

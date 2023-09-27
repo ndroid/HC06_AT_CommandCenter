@@ -9,7 +9,7 @@
  * 
  *  Created on: 18-Oct, 2021
  *      Author: miller4@rose-hulman.edu
- *    Modified: 9-Sep, 2023
+ *    Modified: 27-Sep, 2023
  *    Revision: 2.0
  */
 
@@ -165,6 +165,13 @@ private:
   void clearStreams();
 
   /**
+   * clearSerial
+   * 
+   * @brief Clears Serial input buffer before requesting new response.
+   */
+  void clearSerial();
+
+  /**
    * clearInputStream
    * 
    * @brief Clears Serial1 input buffers before requesting new response.
@@ -272,7 +279,8 @@ public:
    * @param keyPin      pin conencted to EN/KEY input of HC-05 (not used for HC-06)
    * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
    */
-  HCBT(Stream * uart = &Serial1, int keyPin = 0, int statePin = 0);
+  // TODO add support for specifying UART for AT communication
+  //  HCBT(Stream * uart = &Serial1, int keyPin = 0, int statePin = 0);
 
   /** 
    * Create instance of HCBT class.  
@@ -281,7 +289,7 @@ public:
    * @param keyPin      pin conencted to EN/KEY input of HC-05 (not used for HC-06)
    * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
    */
-  HCBT(int keyPin, int statePin = 0);
+  HCBT(int keyPin = 0, int statePin = 0);
 
   /**
    * commandMenu
