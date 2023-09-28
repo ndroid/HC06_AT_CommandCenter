@@ -18,10 +18,14 @@
 
 #include <Arduino.h>
 
-#define ROLE_UNKNOWN         -1         // index for unknown device role
-#define ROLE_SECONDARY        0         // index for HC-05 devices in secondary role
-#define ROLE_PRIMARY          1         // index for HC-05 devices in primary role
-#define ROLE_SECONDARY_LOOP   2         // index for HC-05 devices in secondary-loop role
+/** index for unknown device role */
+#define ROLE_UNKNOWN         -1
+/** index for HC-05 devices in secondary role */
+#define ROLE_SECONDARY        0
+/** index for HC-05 devices in primary role */
+#define ROLE_PRIMARY          1
+/** index for HC-05 devices in secondary-loop role */
+#define ROLE_SECONDARY_LOOP   2
 
 
 /**
