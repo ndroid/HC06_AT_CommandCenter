@@ -10,7 +10,6 @@ Version 2.0
    device (HC-05 or HC-06), firmware version, baud and parity settings.
    Serial1 automatically configured to match HC-05/06 UART settings. HC-05/06 
    must be in configuration mode (AT mode) (LED blinking to indicate Not Connected).
-   Serial monitor settings are 57600 8N1.
  
    Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3).
    There is no documentation of a Version 3 firmware for HC-06. AT commands differ
@@ -27,8 +26,8 @@ Version 2.0
  <br>
   <b>HC06 connections (for 5V boards - resistors not needed for 3V3):</b>
 
-                TXD -----------------> [Serial 1 RX]
-                RXD <----+---R_1K----- [Serial 1 TX]
+                TXD -----------------> [Serial1 RX]
+                RXD <----+---R_1K----- [Serial1 TX]
                          |
                          |
                        R_2K
@@ -67,8 +66,8 @@ Version 2.0
 
                     board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
       -------------------+-------------------------------------------------------
-        [Serial 1 RX]    |        19      13      0        0      19       3 
-        [Serial 1 TX]    |        18      14      1        1      18       4 
+        [Serial1 RX]    |        19      13      0        0      19       3 
+        [Serial1 TX]    |        18      14      1        1      18       4 
 
 <br>
 
@@ -77,7 +76,7 @@ Version 2.0
       Created on: 18-Oct, 2021
       Author: miller4@rose-hulman.edu
     
-        Modified: 25-Aug, 2023
+        Modified: 25-Sep, 2023
         Revision: 2.0
                 * added support and auto-detection for HC-05
                 * defined classes for interfacing HC-0x devices

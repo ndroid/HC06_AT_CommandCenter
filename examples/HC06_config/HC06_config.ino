@@ -13,8 +13,8 @@
  *                
  *    HC06 connections (for 5V boards - resistors not needed for 3V3):
  * 
- *                TXD -----------------> [Serial 1 RX]
- *                RXD <----+---R_1K----- [Serial 1 TX]
+ *                TXD -----------------> [Serial1 RX]
+ *                RXD <----+---R_1K----- [Serial1 TX]
  *                         |
  *                         |
  *                       R_2K
@@ -29,8 +29,8 @@
  *    Pin connections:
  *                    board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
  *      -------------------+-------------------------------------------------------
- *        [Serial 1 RX]    |        19      13      0        0      19       3 
- *        [Serial 1 TX]    |        18      14      1        1      18       4 
+ *        [Serial1 RX]    |        19      13      0        0      19       3 
+ *        [Serial1 TX]    |        18      14      1        1      18       4 
  *      
  * 
  *      Author: ndroid
