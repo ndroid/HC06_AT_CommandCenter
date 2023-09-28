@@ -18,10 +18,10 @@
 
 #include <Arduino.h>
 
-#define ROLE_UNKNOWN   -1         // index for unknown device role
-#define ROLE_SLAVE      0         // index for HC-05 devices in slave role
-#define ROLE_MASTER     1         // index for HC-05 devices in master role
-#define ROLE_SLAVE_LOOP 2         // index for HC-05 devices in slave-loop role
+#define ROLE_UNKNOWN         -1         // index for unknown device role
+#define ROLE_SECONDARY        0         // index for HC-05 devices in secondary role
+#define ROLE_PRIMARY          1         // index for HC-05 devices in primary role
+#define ROLE_SECONDARY_LOOP   2         // index for HC-05 devices in secondary-loop role
 
 
 /**
@@ -48,10 +48,10 @@ private:
    * @param verboseOut     if true, prints verbose output to Serial
    * 
    * @returns  current role setting of device:
-   *    - ROLE_UNKNOWN  - unknown (may be HC-06 fw version 1.x)
-   *    - ROLE_SLAVE    - acts as discoverable wireless UART device ready for transparent data exchange
-   *    - ROLE_MASTER   - scans for a remote bluetooth (slave) device, pairs, and setup connection
-   *    - ROLE_SLAVE_LOOP - data loop-back Rx-Tx, used mainly for testing
+   *    - ROLE_UNKNOWN    - unknown (may be HC-06 fw version 1.x)
+   *    - ROLE_SECONDARY  - acts as discoverable wireless UART device ready for transparent data exchange
+   *    - ROLE_PRIMARY    - scans for a remote bluetooth (secondary) device, pairs, and setup connection
+   *    - ROLE_SECONDARY_LOOP - data loop-back Rx-Tx, used mainly for testing
    */
   int fetchRole(bool verboseOut = false);
 
@@ -111,9 +111,9 @@ private:
    * Send AT command to set BT role of HC-05 device.
    * 
    * @param role     role to set HC-05 device:
-   *    - ROLE_SLAVE    - acts as discoverable wireless UART device ready for transparent data exchange
-   *    - ROLE_MASTER   - scans for a remote bluetooth (slave) device, pairs, and setup connection
-   *    - ROLE_SLAVE_LOOP - data loop-back Rx-Tx, used mainly for testing
+   *    - ROLE_SECONDARY  - acts as discoverable wireless UART device ready for transparent data exchange
+   *    - ROLE_PRIMARY    - scans for a remote bluetooth (secondary) device, pairs, and setup connection
+   *    - ROLE_SECONDARY_LOOP - data loop-back Rx-Tx, used mainly for testing
    * @param verboseOut     if true, prints verbose output to Serial
    * 
    * @returns true if request succeeds.
@@ -246,7 +246,7 @@ private:
   int deviceModel;
   // device firmware version
   int firmVersion;
-  // device role setting: slave, master, slave_loop
+  // device role setting: secondary, primary, secondary_loop
   int deviceRole;
   // device UART baud rate setting
   int baudRate;
@@ -320,10 +320,10 @@ public:
    * @param verboseOut     if true, prints verbose output to Serial
    * 
    * @returns  current role setting of device:
-   *    - ROLE_UNKNOWN  - unknown (may be HC-06 fw version 1.x)
-   *    - ROLE_SLAVE    - acts as discoverable wireless UART device ready for transparent data exchange
-   *    - ROLE_MASTER   - scans for a remote bluetooth (slave) device, pairs, and setup connection
-   *    - ROLE_SLAVE_LOOP - data loop-back Rx-Tx, used mainly for testing
+   *    - ROLE_UNKNOWN    - unknown (may be HC-06 fw version 1.x)
+   *    - ROLE_SECONDARY  - acts as discoverable wireless UART device ready for transparent data exchange
+   *    - ROLE_PRIMARY    - scans for a remote bluetooth (secondary) device, pairs, and setup connection
+   *    - ROLE_SECONDARY_LOOP - data loop-back Rx-Tx, used mainly for testing
    */
   int getRole(bool verboseOut = false);
 
@@ -333,9 +333,9 @@ public:
    * Send AT command to set BT role of HC-05 device.
    * 
    * @param role     role to set HC-05 device:
-   *    - ROLE_SLAVE    - acts as discoverable wireless UART device ready for transparent data exchange
-   *    - ROLE_MASTER   - scans for a remote bluetooth (slave) device, pairs, and setup connection
-   *    - ROLE_SLAVE_LOOP - data loop-back Rx-Tx, used mainly for testing
+   *    - ROLE_SECONDARY  - acts as discoverable wireless UART device ready for transparent data exchange
+   *    - ROLE_PRIMARY    - scans for a remote bluetooth (secondary) device, pairs, and setup connection
+   *    - ROLE_SECONDARY_LOOP - data loop-back Rx-Tx, used mainly for testing
    * @param verboseOut     if true, prints verbose output to Serial
    * 
    * @returns true if request succeeds.

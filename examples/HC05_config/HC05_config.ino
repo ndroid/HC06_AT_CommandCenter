@@ -70,7 +70,7 @@ void setup() {
   while (Serial.available() < 1);
   delay(100);
   Serial.readString();   // clear buffer
-  if (!hc05.detectDevice()) {
+  if (!hc05.detectDevice(true)) {
     Serial.println("Device not identified!");
     Serial.println("Check connections and restart to scan again.");
   }

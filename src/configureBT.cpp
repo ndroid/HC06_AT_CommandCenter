@@ -168,7 +168,7 @@ void HCBT::clearInputStream(int firmware) {
 
 void HCBT::printMenu() {
   Serial.println("\n");
-  Serial.write(12);   // Form feed (not supported in Serial Monitor)
+  Serial.write('\f');   // Form feed (not supported in Serial Monitor)
   Serial.println(responsePrefix[deviceModel] + versionString);
   Serial.print("\tBaud rate: ");
   Serial.println(baudRateList[baudRate]);
@@ -253,16 +253,16 @@ bool HCBT::detectDevice(bool verboseOut) {
             if (firmware == FIRM_VERSION2) {
               // use getRole and setRole response to identify device model
               switch (fetchRole(verboseOut)) {
-                case ROLE_SLAVE:
+                case ROLE_SECONDARY:
                     // hc-06 fw vers 2/3 will fail when attempting to set role
-                    if (changeRole(ROLE_SLAVE, verboseOut)) {
+                    if (changeRole(ROLE_SECONDARY, verboseOut)) {
                       deviceModel = MODEL_HC05;
                     } else {
                       deviceModel = MODEL_HC06;
                     }
                     break;
-                case ROLE_MASTER:
-                case ROLE_SLAVE_LOOP:
+                case ROLE_PRIMARY:
+                case ROLE_SECONDARY_LOOP:
                     deviceModel = MODEL_HC05;
                     break;
                 default:
@@ -380,11 +380,11 @@ int HCBT::fetchRole(bool verboseOut) {
     deviceRole = ROLE_UNKNOWN;
   } else {
     switch (comBuffer.charAt(role+1)) {
-      case '0': deviceRole = ROLE_SLAVE;
+      case '0': deviceRole = ROLE_SECONDARY;
                 break;
-      case '1': deviceRole = ROLE_MASTER;
+      case '1': deviceRole = ROLE_PRIMARY;
                 break;
-      case '2': deviceRole = ROLE_SLAVE_LOOP;
+      case '2': deviceRole = ROLE_SECONDARY_LOOP;
                 break;
       default:  deviceRole = ROLE_UNKNOWN;
     }
@@ -456,10 +456,10 @@ bool HCBT::changeRole(int role, bool verboseOut) {
 bool HCBT::setRole(int role, bool verboseOut) {
   if (VERSION_UNKNOWN)  
     return false;
-  if ((role < ROLE_SLAVE) || (role > ROLE_SLAVE_LOOP))
+  if ((role < ROLE_SECONDARY) || (role > ROLE_SECONDARY_LOOP))
     return false;
   if (deviceModel != MODEL_HC05) {
-    if (role == ROLE_SLAVE)
+    if (role == ROLE_SECONDARY)
       return true;
     else 
       return false;
