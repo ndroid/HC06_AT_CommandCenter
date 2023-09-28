@@ -162,7 +162,8 @@ void HCBT::clearInputStream(int firmware) {
     // wait until input stream is clear
     Serial1.read();
   }
-  setDataMode();
+  // does not return to data mode following call to clear stream,
+  //  since calling functions expect to be in command mode
 }
 
 void HCBT::printMenu() {
@@ -207,7 +208,9 @@ bool HCBT::detectDevice(bool verboseOut) {
       if (firmware == FIRM_VERSION2) {
         baudRate = VERS2_MIN_BAUD;
       } else {
-        baudRate = 0;
+        // currently only support min baud of 4800 to avoid conflict with
+        //  devices which only implement UART min of 4800
+        baudRate = VERS2_MIN_BAUD;
       }
       for ( ; baudRate < BAUD_LIST_CNT; baudRate++) {
         // Test for Version x.x firmware AT echo
@@ -471,7 +474,7 @@ void HCBT::setLocalBaud() {
   String comBuffer = "";
   String command;
 
-  clearStreams();
+  clearSerial();
   Serial.println("It is advised that baud rate is left at same setting as found hardware.");
   Serial.print("Current baud rate: ");
   Serial.println(baudRateList[baudRate]);
@@ -518,7 +521,7 @@ void HCBT::setLocalParity() {
   String comBuffer = "";
   String command;
 
-  clearStreams();
+  clearSerial();
   Serial.println("It is advised that parity is left at same setting as found hardware.");
   Serial.print("Current parity: ");
   Serial.println(parityType[uartParity]);
@@ -614,7 +617,7 @@ String HCBT::constructUARTstring(unsigned long baud, int parity, int stops) {
 void HCBT::selectBaudRate() {
   String command;
 
-  clearStreams();
+  clearSerial();
   Serial.print("Current baud rate: ");
   Serial.println(baudRateList[baudRate]);
   Serial.println("Select desired baud rate:");
@@ -725,7 +728,7 @@ void HCBT::changeName() {
   if ((firmVersion == FIRM_VERSION1) && (baudRate > 4)) {
     maxChars = 9;
   }
-  clearStreams();
+  clearSerial();
   Serial.print("Enter BT name (max "); Serial.print(maxChars);
   Serial.println(" characters - prepends " + namePrefix[deviceModel] + "): ");
 
@@ -804,7 +807,7 @@ bool HCBT::setName(String newName, bool verboseOut) {
 void HCBT::changePin() {
   String pin;
 
-  clearStreams();
+  clearSerial();
   if (firmVersion == FIRM_VERSION2) {
     Serial.println("Enter new BT passkey (14 characters max): ");
   } else {
@@ -912,7 +915,7 @@ bool HCBT::setPin(String newPin, bool verboseOut) {
 void HCBT::changeParity() {
   String command;
 
-  clearStreams();
+  clearSerial();
   Serial.print("Current parity: ");
   Serial.println(parityType[uartParity]);
   Serial.println("Select parity option:");
