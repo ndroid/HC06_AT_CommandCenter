@@ -1,0 +1,35 @@
+#######################################
+# Syntax Coloring Map HC0x_AT_Config
+# by chris miller
+# 	github: @ndroid
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+HCBT	  KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+commandMenu         KEYWORD2
+detectDevice        KEYWORD2
+getRole             KEYWORD2
+setRole             KEYWORD2
+getVersionString    KEYWORD2
+configUART          KEYWORD2
+setName             KEYWORD2
+setPin              KEYWORD2
+setCommandMode      KEYWORD2
+setDataMode         KEYWORD2
+setLocalBaud        KEYWORD2
+setLocalParity      KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+ROLE_UNKNOWN	      LITERAL1	Constants
+ROLE_SECONDARY	    LITERAL1	Constants
+ROLE_PRIMARY	      LITERAL1	Constants
+ROLE_SECONDARY_LOOP	  LITERAL1	Constants
