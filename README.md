@@ -4,7 +4,9 @@ Arduino program for simplifying AT command configuration of HC-05/06 devices ove
 Version 2.0
 
 ## Overview
-  Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined. 
+  <b>Description</b>: Simple HC05/06 AT configuration program. Requires 2nd 
+  UART (Serial1) defined. Full repo can be found at 
+  [HC06_AT_CommandCenter](https://github.com/ndroid/HC06_AT_CommandCenter).
  
    Provides user menu for selecting configuration changes. Automatically identifies
    device (HC-05 or HC-06), firmware version, baud and parity settings.
@@ -74,7 +76,7 @@ Version 2.0
 ### History
 
       Created on: 18-Oct, 2021
-      Author: miller4@rose-hulman.edu
+      Author: ndroid (miller4@rose-hulman.edu)
     
         Modified: 25-Sep, 2023
         Revision: 2.0
