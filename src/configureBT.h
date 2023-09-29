@@ -287,8 +287,9 @@ public:
   //  HCBT(Stream * uart = &Serial1, int keyPin = 0, int statePin = 0);
 
   /** 
-   * Create instance of HCBT class.  
-   * Uses Serial1 for UART connection.
+   * @brief Default HCBT constructor.
+   * 
+   * Uses Serial1 for UART connection. Pin values are optional, defaults to 0.
    * 
    * @param keyPin      pin conencted to EN/KEY input of HC-05 (not used for HC-06)
    * @param statePin    pin conencted to STATE output of HC-05 (not used for HC-06)
@@ -296,16 +297,13 @@ public:
   HCBT(int keyPin = 0, int statePin = 0);
 
   /**
-   * commandMenu
-   *
-   * @brief Print user menu to Serial and handle selection.
+   * @brief Print user menu with config options to Serial and handle selection.
    */
   void commandMenu();
 
   /**
-   * detectDevice
-   *  
-   * Automated scan of Bluetooth module to determine configuration of UART.
+   * @brief Automated scan of Bluetooth module to determine configuration of UART.
+   * 
    * Will identify version of firmware, baud rate, and parity setting, and set
    * Serial1 to match HC-xx UART settings.
    * 
@@ -316,10 +314,10 @@ public:
   bool detectDevice(bool verboseOut = false);
 
   /**
-   * getRole
-   *  
-   * Send AT command to request current BT role for HC-05 device. Returns cached
-   *  value if role previously fetched. Cached value reset by detectDevice().
+   * @brief Send AT command to request current BT role for HC-05 device.
+   * 
+   *  Returns cached value if role previously fetched. Cached value 
+   *  reset by detectDevice().
    * 
    * @param verboseOut     if true, prints verbose output to Serial
    * 
@@ -332,9 +330,7 @@ public:
   int getRole(bool verboseOut = false);
 
   /**
-   * setRole
-   *  
-   * Send AT command to set BT role of HC-05 device.
+   * @brief Send AT command to set BT role of HC-05 device.
    * 
    * @param role     role to set HC-05 device:
    *    - ROLE_SECONDARY  - acts as discoverable wireless UART device ready for transparent data exchange
@@ -347,9 +343,8 @@ public:
   bool setRole(int role, bool verboseOut = false);
 
   /**
-   * getVersionString
-   *  
-   * Send AT command to request firmware version to Serial1 and return response. 
+   * @brief Send AT command to request firmware version to Serial1 and return response. 
+   * 
    *  Returns cached value if version string previously fetched. 
    * 
    * @param verboseOut     if true, prints verbose output to Serial
@@ -359,9 +354,8 @@ public:
   String getVersionString(bool verboseOut = false);
 
   /**
-   * configUART
-   *  
-   * Configure baud rate and parity of HC-xx UART.
+   * @brief Configure baud rate and parity of HC-xx UART.
+   * 
    * Sends AT command(s) to configure baud rate and parity of HC-xx UART.
    * If successful, updates Serial1 configuration to new UART settings.
    * 
@@ -381,9 +375,8 @@ public:
   bool configUART(unsigned long baud, int parity, bool verboseOut = false);
 
   /**
-   * setName
-   *  
-   * Configure name of Bluetooth module.
+   * @brief Configure name of Bluetooth module.
+   * 
    * Sends AT command to set Bluetooth broadcast name of HC-xx device. Some 
    * devices with firmware version 1.x exhibited failures when trying to set 
    * name to more than 14 characters with higher baud rates.
@@ -396,9 +389,8 @@ public:
   bool setName(String newName, bool verboseOut = false);
 
   /**
-   * setPin
-   *  
-   * Configure Bluetooth pin of HC-xx device.
+   * @brief Configure Bluetooth pin (passcode) of HC-xx device.
+   * 
    * Sends AT command to configure BT pin/passkey of HC-xx UART device.
    * For firmware version 1.x, 4-digit code is accepted. For firmware version
    * 3.x, up to 16 alphanumeric character passkey is accepted according to 
@@ -413,32 +405,26 @@ public:
   bool setPin(String newPin, bool verboseOut);
 
   /**
-   * setCommandMode
-   *
    * @brief Set EN pin high to place HC-05 in command mode.
    */
   void setCommandMode();
 
   /**
-   * setDataMode
-   *
    * @brief Set EN pin low (or float) to place HC-05 in data mode.
    */
   void setDataMode();
 
   /**
-   * setLocalBaud
-   *  
-   * Manually configure baud rate of Serial1, for testing/debugging purposes. 
+   * @brief Manually configure baud rate of Serial1, for testing/debugging purposes.
+   * 
    * Preferred to allow detectDevice() to automatically set configuration.
    * Prints menu to Serial to select desired baud rate.
    */
   void setLocalBaud();
 
   /**
-   * setLocalParity
-   *  
-   * Manually configure parity of Serial1, for testing/debugging purposes. 
+   * @brief Manually configure parity of Serial1, for testing/debugging purposes.
+   * 
    * Preferred to allow detectDevice() to automatically set configuration.
    * Prints menu to Serial to select desired parity setting.
    */
