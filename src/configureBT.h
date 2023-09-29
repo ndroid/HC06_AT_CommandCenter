@@ -274,7 +274,7 @@ private:
   bool uartBegun;
   
 public:
-  /** 
+  /*
    * Create instance of HCBT class.  
    * UART interface may be HardwareSerial or SoftwareSerial object,
    * Serial1 is default.
