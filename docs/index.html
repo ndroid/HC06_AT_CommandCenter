@@ -72,19 +72,12 @@ $(function() {
   <div class="headertitle"><div class="title">HC-05/06 AT Command Center </div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="md__r_e_a_d_m_e"></a>Arduino program for simplifying AT command configuration of HC-05/06 devices over UART.</p>
+<div class="textblock"><p><a class="anchor" id="md__r_e_a_d_m_e"></a>Arduino library for simplifying AT command configuration of HC-05/06 devices over UART.</p>
 <p>Version 2.0</p>
 <h1><a class="anchor" id="autotoc_md1"></a>
 Overview</h1>
-<p>Description: Simple HC05/06 AT configuration program. Requires 2nd UART (Serial1) defined.</p>
+<p><b>Description</b>: Simple HC05/06 AT configuration library for Arduino. Requires 2nd UART (Serial1) defined. Full repo can be found at <a href="https://github.com/ndroid/HC06_AT_CommandCenter">HC06_AT_CommandCenter</a>. Reference site for this library can be found <a href="https://ndroid.github.io/HC06_AT_CommandCenter/index.html">here</a>.</p>
 <p>Provides user menu for selecting configuration changes. Automatically identifies device (HC-05 or HC-06), firmware version, baud and parity settings. Serial1 automatically configured to match HC-05/06 UART settings. HC-05/06 must be in configuration mode (AT mode) (LED blinking to indicate Not Connected).</p>
-<p>Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3). There is no documentation of a Version 3 firmware for HC-06. AT commands differ for HC-05 firmware, including CR+NL command terminators. Support for this version has been added beginning with Revision 1 of this software.</p>
-<dl>
-<dt>AT response delays: </dt>
-<dd>Around 10~25ms for Version 3.x (newline terminated) - max observed 35ms<br  />
-  Around 500ms for Version 1.x (timeout terminated) - max observed 525ms<br  />
-  Serial writes are asynchronous, so delays must also consider write time </dd>
-</dl>
 <p><br  />
  <b>HC06 connections (for 5V boards - resistors not needed for 3V3):</b> </p><pre class="fragment">          TXD -----------------&gt; [Serial1 RX]
           RXD &lt;----+---R_1K----- [Serial1 TX]
@@ -95,7 +88,7 @@ Overview</h1>
                   \|/
                   Vss
 </pre><p> <br  />
- <b>HC05 connections: same as above, but also include (for AT mode selection)</b> </p><pre class="fragment">          STATE  -----------------&gt; [State pin]
+ <b>HC05 connections: same as above, but also include (for AT mode selection):</b> </p><pre class="fragment">          STATE  -----------------&gt; [State pin]
           EN/KEY &lt;----+---R_1K----- [Mode pin]
                       |
                       |
@@ -117,10 +110,17 @@ Overview</h1>
   [Serial1 TX]     |        18      14      1        1      18       4 
 </pre><p> <br  />
 </p>
+<p>Recent batches of HC-06 appear to have HC-05 firmware (reporting Version 3). There is no documentation of a Version 3 firmware for HC-06. AT commands differ for HC-05 firmware, including CR+NL command terminators. Support for this version has been added beginning with Revision 1 of this software.</p>
+<dl>
+<dt>AT response delays: </dt>
+<dd>Around 10~25ms for Version 3.x (newline terminated) - max observed 35ms<br  />
+  Around 500ms for Version 1.x (timeout terminated) - max observed 525ms<br  />
+  Serial writes are asynchronous, so delays must also consider write time </dd>
+</dl>
 <h2><a class="anchor" id="autotoc_md2"></a>
 History</h2>
 <pre class="fragment">  Created on: 18-Oct, 2021
-  Author: miller4@rose-hulman.edu
+  Author: ndroid (miller4@rose-hulman.edu)
 
     Modified: 25-Sep, 2023
     Revision: 2.0
@@ -151,7 +151,7 @@ Copyright</h2>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 29 2023 21:39:42 for HC-05/06 AT Command Center by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.7
+Generated on Fri Sep 29 2023 22:34:04 for HC-05/06 AT Command Center by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.7
 </small></address>
 </body>
 </html>

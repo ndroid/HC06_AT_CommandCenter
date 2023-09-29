@@ -80,23 +80,31 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aefdf0d5e874ca79c450ebe5cb9fc74fa"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#aefdf0d5e874ca79c450ebe5cb9fc74fa">HCBT</a> (int keyPin=0, int statePin=0)</td></tr>
+<tr class="memdesc:aefdf0d5e874ca79c450ebe5cb9fc74fa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default <a class="el" href="class_h_c_b_t.html">HCBT</a> constructor.  <br /></td></tr>
 <tr class="separator:aefdf0d5e874ca79c450ebe5cb9fc74fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d2f727ca7c68a81de7d70f825244e9a"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a6d2f727ca7c68a81de7d70f825244e9a">commandMenu</a> ()</td></tr>
-<tr class="memdesc:a6d2f727ca7c68a81de7d70f825244e9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print user menu to Serial and handle selection.  <br /></td></tr>
+<tr class="memdesc:a6d2f727ca7c68a81de7d70f825244e9a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Print user menu with config options to Serial and handle selection.  <br /></td></tr>
 <tr class="separator:a6d2f727ca7c68a81de7d70f825244e9a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae34956c18be3956083d786f085a87027"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027">detectDevice</a> (bool verboseOut=false)</td></tr>
+<tr class="memdesc:ae34956c18be3956083d786f085a87027"><td class="mdescLeft">&#160;</td><td class="mdescRight">Automated scan of Bluetooth module to determine configuration of UART.  <br /></td></tr>
 <tr class="separator:ae34956c18be3956083d786f085a87027"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a31d48b4c90fe3eee44b5021f7bea9114"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a31d48b4c90fe3eee44b5021f7bea9114">getRole</a> (bool verboseOut=false)</td></tr>
+<tr class="memdesc:a31d48b4c90fe3eee44b5021f7bea9114"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send AT command to request current BT role for HC-05 device.  <br /></td></tr>
 <tr class="separator:a31d48b4c90fe3eee44b5021f7bea9114"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa41d4071d972f4baa4cbd40a5da14a82"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#aa41d4071d972f4baa4cbd40a5da14a82">setRole</a> (int role, bool verboseOut=false)</td></tr>
+<tr class="memdesc:aa41d4071d972f4baa4cbd40a5da14a82"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send AT command to set BT role of HC-05 device.  <br /></td></tr>
 <tr class="separator:aa41d4071d972f4baa4cbd40a5da14a82"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a56c9037a231744dc15c5b2248e8176a1"><td class="memItemLeft" align="right" valign="top">String&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a56c9037a231744dc15c5b2248e8176a1">getVersionString</a> (bool verboseOut=false)</td></tr>
+<tr class="memdesc:a56c9037a231744dc15c5b2248e8176a1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Send AT command to request firmware version to Serial1 and return response.  <br /></td></tr>
 <tr class="separator:a56c9037a231744dc15c5b2248e8176a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abdd4c634fbb7bc85a3d78fe411d833f3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#abdd4c634fbb7bc85a3d78fe411d833f3">configUART</a> (unsigned long baud, int parity, bool verboseOut=false)</td></tr>
+<tr class="memdesc:abdd4c634fbb7bc85a3d78fe411d833f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure baud rate and parity of HC-xx UART.  <br /></td></tr>
 <tr class="separator:abdd4c634fbb7bc85a3d78fe411d833f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a44c4ddf6e90888b0a2b5799ae0600013"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a44c4ddf6e90888b0a2b5799ae0600013">setName</a> (String newName, bool verboseOut=false)</td></tr>
+<tr class="memdesc:a44c4ddf6e90888b0a2b5799ae0600013"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure name of Bluetooth module.  <br /></td></tr>
 <tr class="separator:a44c4ddf6e90888b0a2b5799ae0600013"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae9a2eefc2ef830ed39065bcf0e08e755"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#ae9a2eefc2ef830ed39065bcf0e08e755">setPin</a> (String newPin, bool verboseOut)</td></tr>
+<tr class="memdesc:ae9a2eefc2ef830ed39065bcf0e08e755"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure Bluetooth pin (passcode) of HC-xx device.  <br /></td></tr>
 <tr class="separator:ae9a2eefc2ef830ed39065bcf0e08e755"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2cd9f729d967586e4a485c9266283819"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a2cd9f729d967586e4a485c9266283819">setCommandMode</a> ()</td></tr>
 <tr class="memdesc:a2cd9f729d967586e4a485c9266283819"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set EN pin high to place HC-05 in command mode.  <br /></td></tr>
@@ -105,8 +113,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ae0fd46d6b7a0cb13eea37f664a686eac"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set EN pin low (or float) to place HC-05 in data mode.  <br /></td></tr>
 <tr class="separator:ae0fd46d6b7a0cb13eea37f664a686eac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a06f563b018c9dd536574803c8db6d097"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a06f563b018c9dd536574803c8db6d097">setLocalBaud</a> ()</td></tr>
+<tr class="memdesc:a06f563b018c9dd536574803c8db6d097"><td class="mdescLeft">&#160;</td><td class="mdescRight">Manually configure baud rate of Serial1, for testing/debugging purposes.  <br /></td></tr>
 <tr class="separator:a06f563b018c9dd536574803c8db6d097"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a55652a6d54feef7c754195742dffd08c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="class_h_c_b_t.html#a55652a6d54feef7c754195742dffd08c">setLocalParity</a> ()</td></tr>
+<tr class="memdesc:a55652a6d54feef7c754195742dffd08c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Manually configure parity of Serial1, for testing/debugging purposes.  <br /></td></tr>
 <tr class="separator:a55652a6d54feef7c754195742dffd08c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -141,8 +151,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>Create instance of <a class="el" href="class_h_c_b_t.html">HCBT</a> class. <br  />
- Uses Serial1 for UART connection.</p>
+
+<p>Default <a class="el" href="class_h_c_b_t.html">HCBT</a> constructor. </p>
+<p>Uses Serial1 for UART connection. Pin values are optional, defaults to 0.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">keyPin</td><td>pin conencted to EN/KEY input of HC-05 (not used for HC-06) </td></tr>
@@ -171,8 +182,7 @@ Public Member Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Print user menu to Serial and handle selection. </p>
-<p>commandMenu </p>
+<p>Print user menu with config options to Serial and handle selection. </p>
 
 <p class="definition">Definition at line <a class="el" href="configure_b_t_8cpp_source.html#l00058">58</a> of file <a class="el" href="configure_b_t_8cpp_source.html">configureBT.cpp</a>.</p>
 
@@ -193,8 +203,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>detectDevice</p>
-<p>Automated scan of Bluetooth module to determine configuration of UART. Will identify version of firmware, baud rate, and parity setting, and set Serial1 to match HC-xx UART settings.</p>
+
+<p>Automated scan of Bluetooth module to determine configuration of UART. </p>
+<p>Will identify version of firmware, baud rate, and parity setting, and set Serial1 to match HC-xx UART settings.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">verboseOut</td><td>if true, prints verbose output to Serial</td></tr>
@@ -222,8 +233,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>getRole</p>
-<p>Send AT command to request current BT role for HC-05 device. Returns cached value if role previously fetched. Cached value reset by <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027">detectDevice()</a>.</p>
+
+<p>Send AT command to request current BT role for HC-05 device. </p>
+<p>Returns cached value if role previously fetched. Cached value reset by <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027" title="Automated scan of Bluetooth module to determine configuration of UART.">detectDevice()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">verboseOut</td><td>if true, prints verbose output to Serial</td></tr>
@@ -267,8 +279,8 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>setRole</p>
-<p>Send AT command to set BT role of HC-05 device.</p>
+
+<p>Send AT command to set BT role of HC-05 device. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">role</td><td>role to set HC-05 device:<ul>
@@ -302,8 +314,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>getVersionString</p>
-<p>Send AT command to request firmware version to Serial1 and return response. Returns cached value if version string previously fetched.</p>
+
+<p>Send AT command to request firmware version to Serial1 and return response. </p>
+<p>Returns cached value if version string previously fetched.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">verboseOut</td><td>if true, prints verbose output to Serial</td></tr>
@@ -347,8 +360,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>configUART</p>
-<p>Configure baud rate and parity of HC-xx UART. Sends AT command(s) to configure baud rate and parity of HC-xx UART. If successful, updates Serial1 configuration to new UART settings.</p>
+
+<p>Configure baud rate and parity of HC-xx UART. </p>
+<p>Sends AT command(s) to configure baud rate and parity of HC-xx UART. If successful, updates Serial1 configuration to new UART settings.</p>
 <p>!!!! NOTE !!!! Firmware version 1.x requires power-cycle of HC-06 after update to parity settings before changes become active.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -394,8 +408,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>setName</p>
-<p>Configure name of Bluetooth module. Sends AT command to set Bluetooth broadcast name of HC-xx device. Some devices with firmware version 1.x exhibited failures when trying to set name to more than 14 characters with higher baud rates.</p>
+
+<p>Configure name of Bluetooth module. </p>
+<p>Sends AT command to set Bluetooth broadcast name of HC-xx device. Some devices with firmware version 1.x exhibited failures when trying to set name to more than 14 characters with higher baud rates.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">newName</td><td>desired Bluetooth name to configure HC-xx device </td></tr>
@@ -434,8 +449,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>setPin</p>
-<p>Configure Bluetooth pin of HC-xx device. Sends AT command to configure BT pin/passkey of HC-xx UART device. For firmware version 1.x, 4-digit code is accepted. For firmware version 3.x, up to 16 alphanumeric character passkey is accepted according to documentation. This is artificially limited to 14 characters to ensure no conflict with adding quotation characters.</p>
+
+<p>Configure Bluetooth pin (passcode) of HC-xx device. </p>
+<p>Sends AT command to configure BT pin/passkey of HC-xx UART device. For firmware version 1.x, 4-digit code is accepted. For firmware version 3.x, up to 16 alphanumeric character passkey is accepted according to documentation. This is artificially limited to 14 characters to ensure no conflict with adding quotation characters.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">newPin</td><td>desired Bluetooth pin/passkey for HC-xx device </td></tr>
@@ -465,7 +481,6 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Set EN pin high to place HC-05 in command mode. </p>
-<p>setCommandMode </p>
 
 <p class="definition">Definition at line <a class="el" href="configure_b_t_8cpp_source.html#l00111">111</a> of file <a class="el" href="configure_b_t_8cpp_source.html">configureBT.cpp</a>.</p>
 
@@ -487,7 +502,6 @@ Public Member Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Set EN pin low (or float) to place HC-05 in data mode. </p>
-<p>setDataMode </p>
 
 <p class="definition">Definition at line <a class="el" href="configure_b_t_8cpp_source.html#l00122">122</a> of file <a class="el" href="configure_b_t_8cpp_source.html">configureBT.cpp</a>.</p>
 
@@ -507,8 +521,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>setLocalBaud</p>
-<p>Manually configure baud rate of Serial1, for testing/debugging purposes. Preferred to allow <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027">detectDevice()</a> to automatically set configuration. Prints menu to Serial to select desired baud rate. </p>
+
+<p>Manually configure baud rate of Serial1, for testing/debugging purposes. </p>
+<p>Preferred to allow <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027" title="Automated scan of Bluetooth module to determine configuration of UART.">detectDevice()</a> to automatically set configuration. Prints menu to Serial to select desired baud rate. </p>
 
 <p class="definition">Definition at line <a class="el" href="configure_b_t_8cpp_source.html#l00473">473</a> of file <a class="el" href="configure_b_t_8cpp_source.html">configureBT.cpp</a>.</p>
 
@@ -528,8 +543,9 @@ Public Member Functions</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
-<p>setLocalParity</p>
-<p>Manually configure parity of Serial1, for testing/debugging purposes. Preferred to allow <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027">detectDevice()</a> to automatically set configuration. Prints menu to Serial to select desired parity setting. </p>
+
+<p>Manually configure parity of Serial1, for testing/debugging purposes. </p>
+<p>Preferred to allow <a class="el" href="class_h_c_b_t.html#ae34956c18be3956083d786f085a87027" title="Automated scan of Bluetooth module to determine configuration of UART.">detectDevice()</a> to automatically set configuration. Prints menu to Serial to select desired parity setting. </p>
 
 <p class="definition">Definition at line <a class="el" href="configure_b_t_8cpp_source.html#l00520">520</a> of file <a class="el" href="configure_b_t_8cpp_source.html">configureBT.cpp</a>.</p>
 
@@ -542,7 +558,7 @@ Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Fri Sep 29 2023 21:39:42 for HC-05/06 AT Command Center by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.7
+Generated on Fri Sep 29 2023 22:34:04 for HC-05/06 AT Command Center by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.7
 </small></address>
 </body>
 </html>
