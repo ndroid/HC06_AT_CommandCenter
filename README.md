@@ -66,8 +66,8 @@ Version 2.0
 
                     board        Mega    MKR   Uno WiFi  Zero    Due    MSP432
       -------------------+-------------------------------------------------------
-        [Serial1 RX]    |        19      13      0        0      19       3 
-        [Serial1 TX]    |        18      14      1        1      18       4 
+        [Serial1 RX]     |        19      13      0        0      19       3 
+        [Serial1 TX]     |        18      14      1        1      18       4 
 
 <br>
 
