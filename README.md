@@ -80,6 +80,9 @@ Version 2.0
       Created on: 18-Oct, 2021
       Author: ndroid (miller4@rose-hulman.edu)
     
+        Modified: 09-Oct, 2023
+        Revision: 2.0.1
+                * corrects UART failure following detectDevice() failure (Issue #6)
         Modified: 25-Sep, 2023
         Revision: 2.0
                 * added support and auto-detection for HC-05
