@@ -305,6 +305,10 @@ bool HCBT::detectDevice(bool verboseOut) {
       Serial.println("\nDevice not identified. Check connections and try again.");
     }
   }
+  if (VERSION_UNKNOWN) {
+    // since last call is to Serial1.end(), set begun back to false
+    uartBegun = false;
+  }
   setDataMode();
   return (VERSION_KNOWN);
 }
